@@ -338,23 +338,23 @@ function AdminDashboard({ user, onLogout }) {
   const regularUsers = approvedEmails.filter((e) => !ADMIN_EMAILS.includes(e));
 
   return (
-    <div className="h-screen flex flex-col bg-zinc-950 text-zinc-100 overflow-hidden">
+    <div className="h-screen flex flex-col bg-white text-zinc-900 overflow-hidden">
       {/* Header */}
-      <header className="shrink-0 border-b border-zinc-800 bg-zinc-900 px-5 py-3 flex items-center justify-between">
+      <header className="shrink-0 border-b border-zinc-100 bg-white px-5 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-zinc-900 flex items-center justify-center">
             <Ic name="globe" size={14} className="text-white" />
           </div>
-          <span className="text-sm font-semibold text-white">African Aspirations</span>
-          <span className="text-xs text-zinc-500 hidden sm:block">· {user}</span>
+          <span className="text-sm font-semibold text-zinc-900">African Aspirations</span>
+          <span className="text-xs text-zinc-400 hidden sm:block">· {user}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className="bg-zinc-800 text-zinc-300 border-zinc-700 text-[11px] px-2 py-0.5 rounded-md">Admin</Badge>
+          <Badge className="bg-zinc-100 text-zinc-600 border-zinc-200 text-[11px] px-2 py-0.5 rounded-md">Admin</Badge>
           <Button
             onClick={onLogout}
-            variant="ghost"
+            variant="outline"
             size="sm"
-            className="h-7 px-2.5 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 gap-1.5 rounded-lg"
+            className="h-7 px-2.5 text-xs border-zinc-200 text-zinc-500 hover:text-zinc-800 gap-1.5 rounded-lg"
           >
             <Ic name="logout" size={13} />
             Sign out
@@ -363,44 +363,44 @@ function AdminDashboard({ user, onLogout }) {
       </header>
 
       {/* Page content */}
-      <div className="flex-1 flex flex-col overflow-hidden p-4 gap-3">
+      <div className="flex-1 flex flex-col overflow-hidden p-5 gap-3 bg-zinc-50/50">
         {/* Toolbar */}
-        <div className="shrink-0 flex flex-wrap items-center gap-2">
+        <div className="shrink-0 flex flex-wrap items-center gap-2.5">
           <div className="relative flex-1 min-w-[180px]">
-            <Ic name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none" />
+            <Ic name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search deals…"
-              className="h-9 pl-8 text-sm bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 rounded-lg focus-visible:border-zinc-500 focus-visible:ring-0"
+              className="h-9 pl-8 text-sm bg-white border-zinc-200 rounded-lg focus-visible:ring-0 focus-visible:border-zinc-400"
             />
           </div>
 
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-9 w-36 rounded-lg bg-zinc-800 border-zinc-700 text-zinc-200 text-sm focus:ring-0">
+            <SelectTrigger className="h-9 w-36 rounded-lg border-zinc-200 bg-white text-sm text-zinc-700 focus:ring-0">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700 text-zinc-200">
+            <SelectContent>
               {CATEGORIES.map((c) => (
-                <SelectItem key={c} value={c} className="focus:bg-zinc-700 focus:text-white">{c}</SelectItem>
+                <SelectItem key={c} value={c}>{c}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-9 w-36 rounded-lg bg-zinc-800 border-zinc-700 text-zinc-200 text-sm focus:ring-0">
+            <SelectTrigger className="h-9 w-36 rounded-lg border-zinc-200 bg-white text-sm text-zinc-700 focus:ring-0">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent className="bg-zinc-800 border-zinc-700 text-zinc-200">
+            <SelectContent>
               {STATUSES.map((s) => (
-                <SelectItem key={s} value={s} className="focus:bg-zinc-700 focus:text-white">{s}</SelectItem>
+                <SelectItem key={s} value={s}>{s}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <div className="text-sm text-zinc-500 px-1 shrink-0">
-            <span className="font-medium text-zinc-200">{filteredDeals.length}</span> deals
-            {totalValue > 0 && <> · <span className="font-medium text-zinc-200">{fmtMoney(totalValue)}</span></>}
+            <span className="font-semibold text-zinc-800">{filteredDeals.length}</span> deals
+            {totalValue > 0 && <> · <span className="font-semibold text-zinc-800">{fmtMoney(totalValue)}</span></>}
           </div>
 
           <div className="ml-auto flex items-center gap-2">
@@ -408,7 +408,7 @@ function AdminDashboard({ user, onLogout }) {
               onClick={() => setManageOpen(true)}
               variant="outline"
               size="sm"
-              className="h-9 rounded-lg border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 hover:text-white text-xs gap-1.5"
+              className="h-9 rounded-lg border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 text-xs gap-1.5"
             >
               <Ic name="user" size={13} />
               Manage users
@@ -416,7 +416,7 @@ function AdminDashboard({ user, onLogout }) {
             <Button
               onClick={() => setAddOpen(true)}
               size="sm"
-              className="h-9 rounded-lg bg-white text-zinc-900 hover:bg-zinc-100 text-xs gap-1.5 font-medium"
+              className="h-9 rounded-lg bg-zinc-900 text-white hover:bg-zinc-800 text-xs gap-1.5 font-medium"
             >
               <Ic name="plus" size={13} />
               Add deal
@@ -425,48 +425,48 @@ function AdminDashboard({ user, onLogout }) {
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto rounded-xl border border-zinc-800">
+        <div className="flex-1 overflow-auto rounded-xl border border-zinc-200 bg-white shadow-sm">
           <table className="w-full text-sm border-collapse">
             <thead className="sticky top-0 z-10">
-              <tr className="bg-zinc-900 border-b border-zinc-800">
-                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-500 px-4 py-3 whitespace-nowrap">Deal</th>
-                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-500 px-4 py-3 whitespace-nowrap">Category</th>
-                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-500 px-4 py-3 whitespace-nowrap">Status</th>
-                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-500 px-4 py-3 whitespace-nowrap">Size</th>
-                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-500 px-4 py-3 whitespace-nowrap">Deliverables</th>
-                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-500 px-4 py-3 whitespace-nowrap">Actions</th>
+              <tr className="bg-zinc-50 border-b border-zinc-200">
+                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-400 px-5 py-3 whitespace-nowrap">Deal</th>
+                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-400 px-5 py-3 whitespace-nowrap">Category</th>
+                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-400 px-5 py-3 whitespace-nowrap">Status</th>
+                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-400 px-5 py-3 whitespace-nowrap">Size</th>
+                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-400 px-5 py-3 whitespace-nowrap">Deliverables</th>
+                <th className="text-left text-[11px] font-medium uppercase tracking-widest text-zinc-400 px-5 py-3 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-zinc-950">
+            <tbody>
               {filteredDeals.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-16 text-zinc-600 text-sm">No deals match your filters.</td>
+                  <td colSpan={6} className="text-center py-16 text-zinc-400 text-sm">No deals match your filters.</td>
                 </tr>
               ) : filteredDeals.map((deal) => (
-                <tr key={deal.id} className="border-b border-zinc-800/60 hover:bg-zinc-900/60 transition-colors">
-                  <td className="px-4 py-3.5 align-top">
-                    <div className="font-medium text-zinc-100">{deal.entity}</div>
-                    <div className="mt-0.5 text-xs text-zinc-500">{deal.codeName} · {deal.description}</div>
+                <tr key={deal.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50/80 transition-colors">
+                  <td className="px-5 py-3.5 align-top">
+                    <div className="font-semibold text-zinc-900">{deal.entity}</div>
+                    <div className="mt-0.5 text-xs text-zinc-400">{deal.codeName} · {deal.description}</div>
                   </td>
-                  <td className="px-4 py-3.5 align-top">
-                    <Badge className={`${catBadgeDark[deal.category] || "bg-zinc-800 text-zinc-400 border border-zinc-700"} rounded-full px-2.5 py-0.5 text-[11px] font-medium`}>
+                  <td className="px-5 py-3.5 align-top">
+                    <Badge className={`${catBadge[deal.category] || "bg-zinc-100 text-zinc-600 border border-zinc-200"} rounded-full px-2.5 py-0.5 text-[11px] font-medium`}>
                       {deal.category}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3.5 align-top">
-                    <Badge className={`${statBadgeDark[deal.status] || "bg-zinc-800 text-zinc-400 border border-zinc-700"} rounded-full px-2.5 py-0.5 text-[11px] font-medium`}>
+                  <td className="px-5 py-3.5 align-top">
+                    <Badge className={`${statBadge[deal.status] || "bg-zinc-100 text-zinc-600 border border-zinc-200"} rounded-full px-2.5 py-0.5 text-[11px] font-medium`}>
                       {deal.status}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3.5 align-top text-zinc-300 tabular-nums whitespace-nowrap">{fmtMoney(deal.size)}</td>
-                  <td className="px-4 py-3.5 align-top text-zinc-400 max-w-[200px]">{deal.deliverables}</td>
-                  <td className="px-4 py-3.5 align-top">
+                  <td className="px-5 py-3.5 align-top text-zinc-700 tabular-nums whitespace-nowrap">{fmtMoney(deal.size)}</td>
+                  <td className="px-5 py-3.5 align-top text-zinc-500 max-w-[200px]">{deal.deliverables}</td>
+                  <td className="px-5 py-3.5 align-top">
                     <div className="flex gap-1">
                       <Button
                         onClick={() => setEditingDeal({ ...deal, size: deal.size ?? "" })}
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2.5 text-xs text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg gap-1"
+                        className="h-7 px-2.5 text-xs text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg gap-1"
                       >
                         <Ic name="edit" size={12} />
                         Edit
@@ -475,7 +475,7 @@ function AdminDashboard({ user, onLogout }) {
                         onClick={() => handleRemoveDeal(deal.id)}
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2.5 text-xs text-red-500/80 hover:text-red-400 hover:bg-red-950/40 rounded-lg gap-1"
+                        className="h-7 px-2.5 text-xs text-red-500/70 hover:text-red-600 hover:bg-red-50 rounded-lg gap-1"
                       >
                         <Ic name="trash" size={12} />
                         Delete
