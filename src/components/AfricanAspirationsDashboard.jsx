@@ -1,5 +1,6 @@
 "use client"
 import { useState, useMemo } from "react";
+import { Agentation } from "agentation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,12 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
 // ─── Inline SVG icon system (Iconsax outline) ─────────────────────────────────
@@ -289,6 +284,36 @@ function DealForm({ deal, onChange, onSubmit, onCancel, submitLabel }) {
   );
 }
 
+// ─── Side panel (slide-in from right) ────────────────────────────────────────
+function SidePanel({ open, onClose, title, children }) {
+  return (
+    <>
+      <div
+        className={`fixed inset-0 bg-black/20 z-40 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+        onClick={onClose}
+      />
+      <div
+        className={`fixed right-0 top-0 h-full w-[460px] max-w-[95vw] bg-white shadow-2xl z-50 flex flex-col transition-transform duration-300 ease-in-out ${open ? "translate-x-0" : "translate-x-full"}`}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100 shrink-0">
+          <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-7 w-7 p-0 rounded-lg text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100"
+          >
+            <Ic name="close" size={15} />
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          {children}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ─── Admin dashboard ──────────────────────────────────────────────────────────
 function AdminDashboard({ user, onLogout }) {
   const [query, setQuery] = useState("");
@@ -489,87 +514,72 @@ function AdminDashboard({ user, onLogout }) {
         </div>
       </div>
 
-      {/* Add Deal Dialog */}
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add new deal</DialogTitle>
-          </DialogHeader>
+      {/* Add Deal Panel */}
+      <SidePanel open={addOpen} onClose={() => { setAddOpen(false); setNewDeal(BLANK_DEAL); }} title="Add new deal">
+        <DealForm
+          deal={newDeal}
+          onChange={(field, val) => setNewDeal((p) => ({ ...p, [field]: val }))}
+          onSubmit={handleAddDeal}
+          onCancel={() => { setAddOpen(false); setNewDeal(BLANK_DEAL); }}
+          submitLabel="Add deal"
+        />
+      </SidePanel>
+
+      {/* Edit Deal Panel */}
+      <SidePanel open={!!editingDeal} onClose={() => setEditingDeal(null)} title="Edit deal">
+        {editingDeal && (
           <DealForm
-            deal={newDeal}
-            onChange={(field, val) => setNewDeal((p) => ({ ...p, [field]: val }))}
-            onSubmit={handleAddDeal}
-            onCancel={() => { setAddOpen(false); setNewDeal(BLANK_DEAL); }}
-            submitLabel="Add deal"
+            deal={editingDeal}
+            onChange={(field, val) => setEditingDeal((p) => ({ ...p, [field]: val }))}
+            onSubmit={handleSaveEdit}
+            onCancel={() => setEditingDeal(null)}
+            submitLabel="Save changes"
           />
-        </DialogContent>
-      </Dialog>
+        )}
+      </SidePanel>
 
-      {/* Edit Deal Dialog */}
-      {editingDeal && (
-        <Dialog open={true} onOpenChange={(open) => !open && setEditingDeal(null)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Edit deal</DialogTitle>
-            </DialogHeader>
-            <DealForm
-              deal={editingDeal}
-              onChange={(field, val) => setEditingDeal((p) => ({ ...p, [field]: val }))}
-              onSubmit={handleSaveEdit}
-              onCancel={() => setEditingDeal(null)}
-              submitLabel="Save changes"
-            />
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Manage Users Dialog */}
-      <Dialog open={manageOpen} onOpenChange={setManageOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Manage users</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-1">
-            <div>
-              <Label className="text-xs text-zinc-500 mb-2 block">Add approved user</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddUser()}
-                  placeholder="user@example.com"
-                  type="email"
-                  className="h-9 flex-1 text-sm rounded-lg border-zinc-200"
-                />
-                <Button onClick={handleAddUser} className="h-9 rounded-lg bg-zinc-900 text-sm text-white hover:bg-zinc-800 px-4">Add</Button>
-              </div>
+      {/* Manage Users Panel */}
+      <SidePanel open={manageOpen} onClose={() => setManageOpen(false)} title="Manage users">
+        <div className="space-y-5">
+          <div>
+            <Label className="text-xs text-zinc-500 mb-2 block">Add approved user</Label>
+            <div className="flex gap-2">
+              <Input
+                value={newUserEmail}
+                onChange={(e) => setNewUserEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddUser()}
+                placeholder="user@example.com"
+                type="email"
+                className="h-9 flex-1 text-sm rounded-lg border-zinc-200"
+              />
+              <Button onClick={handleAddUser} className="h-9 rounded-lg bg-zinc-900 text-sm text-white hover:bg-zinc-800 px-4">Add</Button>
             </div>
+          </div>
 
+          <div>
+            <p className="text-xs text-zinc-500 mb-2">Regular users ({regularUsers.length})</p>
             {regularUsers.length > 0 ? (
-              <div>
-                <p className="text-xs text-zinc-500 mb-2">Regular users ({regularUsers.length})</p>
-                <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                  {regularUsers.map((email) => (
-                    <div key={email} className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2">
-                      <span className="text-sm text-zinc-700">{email}</span>
-                      <Button
-                        onClick={() => handleRemoveUser(email)}
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 text-zinc-400 hover:text-red-500 rounded"
-                      >
-                        <Ic name="close" size={13} />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
+              <div className="space-y-1.5">
+                {regularUsers.map((email) => (
+                  <div key={email} className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2.5">
+                    <span className="text-sm text-zinc-700">{email}</span>
+                    <Button
+                      onClick={() => handleRemoveUser(email)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-zinc-400 hover:text-red-500 rounded"
+                    >
+                      <Ic name="close" size={13} />
+                    </Button>
+                  </div>
+                ))}
               </div>
             ) : (
-              <p className="text-sm text-zinc-400 text-center py-4">No regular users yet.</p>
+              <p className="text-sm text-zinc-400 py-4">No regular users yet.</p>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </SidePanel>
     </div>
   );
 }
@@ -707,7 +717,12 @@ export default function AfricanAspirationsApp() {
   function login(email) { sessionStorage.setItem("aa_user", email); setUser(email); }
   function logout() { sessionStorage.removeItem("aa_user"); setUser(null); }
 
-  if (!user) return <AuthScreen onLogin={login} />;
-  if (ADMIN_EMAILS.includes(user)) return <AdminDashboard user={user} onLogout={logout} />;
-  return <UserDashboard user={user} onLogout={logout} />;
+  return (
+    <>
+      {!user && <AuthScreen onLogin={login} />}
+      {user && ADMIN_EMAILS.includes(user) && <AdminDashboard user={user} onLogout={logout} />}
+      {user && !ADMIN_EMAILS.includes(user) && <UserDashboard user={user} onLogout={logout} />}
+      <Agentation />
+    </>
+  );
 }
