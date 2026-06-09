@@ -1,5 +1,5 @@
 "use client"
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -211,15 +211,440 @@ function AuthScreen({ onLogin }) {
   );
 }
 
-// The rest of the component (DealModal, AdminPanel, KpiCard, Dashboard, Root App)
-// is kept identical to the original file for brevity. In the workspace the full
-// component is present to preserve behavior; this file is the migrated client
-// component used by the Next.js App Router.
+// The rest of the component has been simplified to render the dashboard UI directly.
+
+function DashboardScreen({ user, onLogout }) {
+  const isAdmin = ADMIN_EMAILS.includes(user);
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("All");
+  const [deals, setDeals] = useState(() => ls("aa_deals", SEED_DEALS));
+  const [approvedEmails, setApprovedEmails] = useState(() => ls("aa_approved", APPROVED_EMAILS));
+  const [newDeal, setNewDeal] = useState({ entity: "", codeName: "", category: "Funding", description: "", size: "", deliverables: "", status: "Active" });
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [editingDeal, setEditingDeal] = useState(null);
+  const categories = ["All", "Funding", "Brokerage", "Consulting"];
+  const statuses = ["Active", "Closed", "On Hold"];
+
+  function persistDeals(nextDeals) {
+    setDeals(nextDeals);
+    ss("aa_deals", nextDeals);
+  }
+
+  function persistApprovedEmails(nextEmails) {
+    setApprovedEmails(nextEmails);
+    ss("aa_approved", nextEmails);
+  }
+
+  function addDeal() {
+    if (!newDeal.entity.trim() || !newDeal.codeName.trim()) return;
+    const deal = {
+      ...newDeal,
+      id: Date.now(),
+      size: newDeal.size ? Number(newDeal.size) : null,
+    };
+    persistDeals([...deals, deal]);
+    setNewDeal({ entity: "", codeName: "", category: "Funding", description: "", size: "", deliverables: "", status: "Active" });
+  }
+
+  function saveEditedDeal() {
+    if (!editingDeal) return;
+    const updatedDeal = {
+      ...editingDeal,
+      size: editingDeal.size ? Number(editingDeal.size) : null,
+    };
+    persistDeals(deals.map((deal) => (deal.id === updatedDeal.id ? updatedDeal : deal)));
+    setEditingDeal(null);
+  }
+
+  function removeDeal(id) {
+    persistDeals(deals.filter((deal) => deal.id !== id));
+  }
+
+  const filteredDeals = useMemo(() => {
+    return deals.filter((deal) => {
+      const matchesQuery = query
+        ? `${deal.entity} ${deal.codeName} ${deal.description}`.toLowerCase().includes(query.toLowerCase())
+        : true;
+      const matchesCategory = category === "All" || deal.category === category;
+      return matchesQuery && matchesCategory;
+    });
+  }, [deals, query, category]);
+
+  const totalValue = useMemo(
+    () => filteredDeals.reduce((sum, deal) => sum + (deal.size || 0), 0),
+    [filteredDeals]
+  );
+
+  return (
+    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+      <header className="flex flex-col gap-4 border-b border-zinc-200 bg-white p-6 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-sm text-zinc-500">Welcome back,</p>
+          <h1 className="text-3xl font-semibold">African Aspirations Dashboard</h1>
+          <p className="mt-1 text-sm text-zinc-500">Signed in as {user}</p>
+          <Badge className="mt-3 inline-flex rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+            {isAdmin ? "Admin access" : "Read-only access"}
+          </Badge>
+        </div>
+        <Button onClick={onLogout} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">
+          Sign out
+        </Button>
+      </header>
+
+      <main className="space-y-6 p-6">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-3xl bg-white p-5 shadow-sm border border-zinc-200">
+            <p className="text-sm text-zinc-500">Active pipeline</p>
+            <p className="mt-3 text-3xl font-semibold">{filteredDeals.length}</p>
+            <Badge className="mt-3 inline-flex rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">
+              Category: {category}
+            </Badge>
+          </div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm border border-zinc-200">
+            <p className="text-sm text-zinc-500">Total deal value</p>
+            <p className="mt-3 text-3xl font-semibold">{totalValue ? fmtMoney(totalValue) : "TBD"}</p>
+          </div>
+          <div className="rounded-3xl bg-white p-5 shadow-sm border border-zinc-200">
+            <p className="text-sm text-zinc-500">Unique entities</p>
+            <p className="mt-3 text-3xl font-semibold">{new Set(filteredDeals.map((deal) => deal.entity)).size}</p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-[1.5fr_0.9fr]">
+          <section className="rounded-3xl bg-white p-5 shadow-sm border border-zinc-200">
+            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Deal pipeline</h2>
+                <p className="text-sm text-zinc-500">Search and filter live deal pipeline items.</p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="mb-2 block text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
+                    Search
+                  </Label>
+                  <Input
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Search deals"
+                    className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-400"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-2 block text-xs font-medium uppercase tracking-[0.16em] text-zinc-500">
+                    Category
+                  </Label>
+                  <Select value={category} onValueChange={(value) => setCategory(value)}>
+                    <SelectTrigger className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent className="mt-2 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                      {categories.map((item) => (
+                        <SelectItem
+                          key={item}
+                          value={item}
+                          className="cursor-pointer px-3 py-2 text-sm hover:bg-zinc-100"
+                        >
+                          {item}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {filteredDeals.length ? (
+                filteredDeals.slice(0, 12).map((deal) => (
+                  <div
+                    key={deal.id}
+                    className="rounded-3xl border border-zinc-200 p-4 hover:border-zinc-300"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold text-zinc-900">{deal.entity}</h3>
+                        <p className="text-sm text-zinc-500">{deal.codeName} · {deal.description}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge className={`${catBadge[deal.category] || "bg-zinc-100 text-zinc-700"} rounded-full px-3 py-1 text-xs font-medium`}>
+                          {deal.category}
+                        </Badge>
+                        <Badge className={`${statBadge[deal.status] || "bg-zinc-100 text-zinc-700"} rounded-full px-3 py-1 text-xs font-medium`}>
+                          {deal.status}
+                        </Badge>
+                        {isAdmin && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              onClick={() => setEditingDeal({ ...deal, size: deal.size ?? "" })}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 rounded-xl border-zinc-200 px-3 text-xs font-light"
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              onClick={() => removeDeal(deal.id)}
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 rounded-xl text-red-600 hover:bg-red-50 text-xs font-light"
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-zinc-500">
+                      <span>{fmtMoney(deal.size)}</span>
+                      <span>{deal.deliverables}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-3xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-center text-sm text-zinc-500">
+                  No deals match your search and filter criteria.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <aside className="rounded-3xl bg-white p-5 shadow-sm border border-zinc-200">
+            {isAdmin ? (
+              <>
+                <h2 className="text-lg font-semibold">Admin controls</h2>
+                <p className="mt-2 text-sm text-zinc-500">Create, edit, or remove deals from the pipeline.</p>
+
+                <div className="mt-5 space-y-4 rounded-3xl bg-zinc-50 p-4">
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold text-zinc-900">Add a new deal</h3>
+                    <Input
+                      value={newDeal.entity}
+                      onChange={(event) => setNewDeal((prev) => ({ ...prev, entity: event.target.value }))}
+                      placeholder="Entity name"
+                      className="h-10 text-sm border-zinc-200 rounded-xl"
+                    />
+                    <Input
+                      value={newDeal.codeName}
+                      onChange={(event) => setNewDeal((prev) => ({ ...prev, codeName: event.target.value }))}
+                      placeholder="Code name"
+                      className="h-10 text-sm border-zinc-200 rounded-xl"
+                    />
+                    <Input
+                      value={newDeal.description}
+                      onChange={(event) => setNewDeal((prev) => ({ ...prev, description: event.target.value }))}
+                      placeholder="Description"
+                      className="h-10 text-sm border-zinc-200 rounded-xl"
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Select value={newDeal.category} onValueChange={(value) => setNewDeal((prev) => ({ ...prev, category: value }))}>
+                        <SelectTrigger className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700">
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent className="mt-2 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                          {categories.slice(1).map((item) => (
+                            <SelectItem key={item} value={item} className="cursor-pointer px-3 py-2 text-sm hover:bg-zinc-100">
+                              {item}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={newDeal.status} onValueChange={(value) => setNewDeal((prev) => ({ ...prev, status: value }))}>
+                        <SelectTrigger className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700">
+                          <SelectValue placeholder="Status" />
+                        </SelectTrigger>
+                        <SelectContent className="mt-2 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                          {statuses.map((item) => (
+                            <SelectItem key={item} value={item} className="cursor-pointer px-3 py-2 text-sm hover:bg-zinc-100">
+                              {item}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Input
+                        value={newDeal.size}
+                        onChange={(event) => setNewDeal((prev) => ({ ...prev, size: event.target.value }))}
+                        placeholder="Deal size"
+                        type="number"
+                        className="h-10 text-sm border-zinc-200 rounded-xl"
+                      />
+                      <Input
+                        value={newDeal.deliverables}
+                        onChange={(event) => setNewDeal((prev) => ({ ...prev, deliverables: event.target.value }))}
+                        placeholder="Deliverables"
+                        className="h-10 text-sm border-zinc-200 rounded-xl"
+                      />
+                    </div>
+                  </div>
+
+                  <Button onClick={addDeal} className="w-full rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">
+                    Add deal
+                  </Button>
+                </div>
+
+                <div className="mt-6 space-y-3">
+                  <h3 className="text-sm font-semibold text-zinc-900">Admin email</h3>
+                  {ADMIN_EMAILS.map((email) => (
+                    <div key={email} className="flex items-center justify-between rounded-2xl bg-zinc-50 px-4 py-3">
+                      <span className="text-sm text-zinc-700">{email}</span>
+                      <Badge className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700">Admin</Badge>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 rounded-3xl bg-zinc-50 p-4">
+                  <h3 className="text-sm font-semibold text-zinc-900">Create regular user</h3>
+                  <p className="text-xs text-zinc-500">Add an approved email to give view-only access.</p>
+                  <div className="mt-3 flex gap-2">
+                    <Input
+                      value={newUserEmail}
+                      onChange={(event) => setNewUserEmail(event.target.value)}
+                      placeholder="user@example.com"
+                      type="email"
+                      className="h-10 flex-1 text-sm border-zinc-200 rounded-xl"
+                    />
+                    <Button
+                      onClick={() => {
+                        const email = newUserEmail.trim().toLowerCase();
+                        if (!email || approvedEmails.includes(email)) return;
+                        persistApprovedEmails([...approvedEmails, email]);
+                        setNewUserEmail("");
+                      }}
+                      className="rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800"
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  {approvedEmails.filter((email) => !ADMIN_EMAILS.includes(email)).length > 0 && (
+                    <div className="mt-4 space-y-2 text-sm text-zinc-700">
+                      <p className="font-medium">Approved regular users</p>
+                      {approvedEmails
+                        .filter((email) => !ADMIN_EMAILS.includes(email))
+                        .map((email) => (
+                          <div key={email} className="rounded-2xl bg-white px-3 py-2 text-zinc-700">
+                            {email}
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-semibold">Regular user view</h2>
+                <p className="mt-2 text-sm text-zinc-500">You can view the pipeline but cannot make changes.</p>
+                <div className="mt-6 rounded-3xl bg-violet-50 p-4 text-sm text-violet-700">
+                  Administrators can add, edit, and delete deals from this panel.
+                </div>
+              </>
+            )}
+          </aside>
+        </div>
+      </main>
+
+      {editingDeal && (
+        <Dialog open={true} onOpenChange={(open) => !open && setEditingDeal(null)}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Edit deal</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                value={editingDeal.entity}
+                onChange={(event) => setEditingDeal((prev) => ({ ...prev, entity: event.target.value }))}
+                placeholder="Entity"
+                className="h-10 text-sm border-zinc-200 rounded-xl"
+              />
+              <Input
+                value={editingDeal.codeName}
+                onChange={(event) => setEditingDeal((prev) => ({ ...prev, codeName: event.target.value }))}
+                placeholder="Code name"
+                className="h-10 text-sm border-zinc-200 rounded-xl"
+              />
+              <Input
+                value={editingDeal.description}
+                onChange={(event) => setEditingDeal((prev) => ({ ...prev, description: event.target.value }))}
+                placeholder="Description"
+                className="h-10 text-sm border-zinc-200 rounded-xl"
+              />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Select value={editingDeal.category} onValueChange={(value) => setEditingDeal((prev) => ({ ...prev, category: value }))}>
+                  <SelectTrigger className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent className="mt-2 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                    {categories.slice(1).map((item) => (
+                      <SelectItem key={item} value={item} className="cursor-pointer px-3 py-2 text-sm hover:bg-zinc-100">
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={editingDeal.status} onValueChange={(value) => setEditingDeal((prev) => ({ ...prev, status: value }))}>
+                  <SelectTrigger className="w-full rounded-xl border border-zinc-200 px-3 py-2 text-sm text-zinc-700">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent className="mt-2 rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                    {statuses.map((item) => (
+                      <SelectItem key={item} value={item} className="cursor-pointer px-3 py-2 text-sm hover:bg-zinc-100">
+                        {item}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  value={editingDeal.size}
+                  onChange={(event) => setEditingDeal((prev) => ({ ...prev, size: event.target.value }))}
+                  placeholder="Deal size"
+                  type="number"
+                  className="h-10 text-sm border-zinc-200 rounded-xl"
+                />
+                <Input
+                  value={editingDeal.deliverables}
+                  onChange={(event) => setEditingDeal((prev) => ({ ...prev, deliverables: event.target.value }))}
+                  placeholder="Deliverables"
+                  className="h-10 text-sm border-zinc-200 rounded-xl"
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => setEditingDeal(null)} className="rounded-xl px-4 py-2 text-sm font-light">
+                  Cancel
+                </Button>
+                <Button onClick={saveEditedDeal} className="rounded-xl bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-800">
+                  Save changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
 
 export default function AfricanAspirationsApp() {
-  const [user, setUser] = useState(() => { try { return sessionStorage.getItem("aa_user") || null; } catch { return null; } });
-  function login(e) { sessionStorage.setItem("aa_user", e); setUser(e); }
-  function logout() { sessionStorage.removeItem("aa_user"); setUser(null); }
+  const [user, setUser] = useState(() => {
+    try {
+      return sessionStorage.getItem("aa_user") || null;
+    } catch {
+      return null;
+    }
+  });
+
+  function login(email) {
+    sessionStorage.setItem("aa_user", email);
+    setUser(email);
+  }
+
+  function logout() {
+    sessionStorage.removeItem("aa_user");
+    setUser(null);
+  }
+
   if (!user) return <AuthScreen onLogin={login} />;
-  return <div style={{ minHeight: '100vh' }}><p className="p-6">Dashboard mounted for {user}. (UI components and full dashboard preserved.)</p></div>;
+  return <DashboardScreen user={user} onLogout={logout} />;
 }
