@@ -1,9 +1,14 @@
 import { supabase } from './supabaseClient'
 
+function missingClientResponse() {
+  return { success: false, approved: false, isAdmin: false, error: 'Supabase client not initialized. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
+}
+
 /**
  * Validate if an email is in the approved_emails table
  */
 export async function isEmailApproved(email) {
+  if (!supabase) return missingClientResponse()
   try {
     const { data, error } = await supabase
       .from('approved_emails')
@@ -26,6 +31,7 @@ export async function isEmailApproved(email) {
  * Get all approved emails (admin only)
  */
 export async function getApprovedEmails() {
+  if (!supabase) return []
   try {
     const { data, error } = await supabase
       .from('approved_emails')
@@ -44,6 +50,7 @@ export async function getApprovedEmails() {
  * Add or update an approved email
  */
 export async function addApprovedEmail(email, isAdmin = false) {
+  if (!supabase) return { success: false, error: 'Supabase client not initialized.' }
   try {
     const { data, error } = await supabase
       .from('approved_emails')
@@ -65,6 +72,7 @@ export async function addApprovedEmail(email, isAdmin = false) {
  * Remove an approved email
  */
 export async function removeApprovedEmail(email) {
+  if (!supabase) return { success: false, error: 'Supabase client not initialized.' }
   try {
     const { error } = await supabase
       .from('approved_emails')

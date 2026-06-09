@@ -51,7 +51,7 @@ create policy "select_approved_emails_for_auth" on public.approved_emails
   );
 
 create policy "insert_approved_emails_service_role" on public.approved_emails
-  for insert using (auth.role() = 'service_role') with check (auth.role() = 'service_role');
+  for insert with check (auth.role() = 'service_role');
 
 -- deals policies: allow select if user's email is in approved_emails
 create policy "select_deals_if_approved" on public.deals
@@ -67,14 +67,16 @@ create policy "update_deals_admins_only" on public.deals
 
 -- allow inserts only for admins (service role or admin users)
 create policy "insert_deals_admins_only" on public.deals
-  for insert using (
+  for insert with check (
     exists (select 1 from public.approved_emails ae where ae.email = auth.email() and ae.is_admin = true)
   );
 
 -- Seed data: approved emails
 insert into public.approved_emails (email, is_admin) values
 ('winston.best-ezeani@africanaspirations.com', true),
-('demo@africanaspirations.com', false)
+('admin@africanaspirations.com', true),
+('demo@africanaspirations.com', false),
+('investor@africanaspirations.com', false)
 on conflict (email) do nothing;
 
 -- Seed deals

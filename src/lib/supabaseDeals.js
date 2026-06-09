@@ -1,15 +1,16 @@
 import { supabase } from './supabaseClient'
 
-/**
- * Fetch all deals from Supabase
- */
+function missingClientResponse() {
+  return { success: false, data: [], error: 'Supabase client not initialized. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
+}
+
 export async function getAllDeals() {
+  if (!supabase) return missingClientResponse()
   try {
     const { data, error } = await supabase
       .from('deals')
       .select('*')
-      .order('created_at', { ascending: false })
-
+      .order('size', { ascending: false })
     if (error) throw error
     return { success: true, data: data || [] }
   } catch (err) {
@@ -18,26 +19,22 @@ export async function getAllDeals() {
   }
 }
 
-/**
- * Create a new deal
- */
 export async function createDeal(deal) {
+  if (!supabase) return missingClientResponse()
   try {
     const { data, error } = await supabase
       .from('deals')
-      .insert([
-        {
-          entity: deal.entity,
-          code_name: deal.codeName,
-          category: deal.category,
-          description: deal.description,
-          size: deal.size ? Number(deal.size) : null,
-          deliverables: deal.deliverables,
-          status: deal.status,
-        },
-      ])
+      .insert([{
+        entity:   deal.entity,
+        code_name: deal.codeName,
+        service:  deal.service,
+        about:    deal.about,
+        industry: deal.industry,
+        size:     deal.size ? Number(deal.size) : null,
+        ebitda:   deal.ebitda ? Number(deal.ebitda) : null,
+        revenues: deal.revenues ? Number(deal.revenues) : null,
+      }])
       .select()
-
     if (error) throw error
     return { success: true, data: data?.[0] }
   } catch (err) {
@@ -46,27 +43,24 @@ export async function createDeal(deal) {
   }
 }
 
-/**
- * Update an existing deal
- */
 export async function updateDeal(id, updates) {
+  if (!supabase) return missingClientResponse()
   try {
     const payload = {
-      entity: updates.entity,
+      entity:   updates.entity,
       code_name: updates.codeName,
-      category: updates.category,
-      description: updates.description,
-      size: updates.size ? Number(updates.size) : null,
-      deliverables: updates.deliverables,
-      status: updates.status,
+      service:  updates.service,
+      about:    updates.about,
+      industry: updates.industry,
+      size:     updates.size ? Number(updates.size) : null,
+      ebitda:   updates.ebitda ? Number(updates.ebitda) : null,
+      revenues: updates.revenues ? Number(updates.revenues) : null,
     }
-
     const { data, error } = await supabase
       .from('deals')
       .update(payload)
       .eq('id', id)
       .select()
-
     if (error) throw error
     return { success: true, data: data?.[0] }
   } catch (err) {
@@ -75,68 +69,14 @@ export async function updateDeal(id, updates) {
   }
 }
 
-/**
- * Delete a deal
- */
 export async function deleteDeal(id) {
+  if (!supabase) return missingClientResponse()
   try {
-    const { error } = await supabase
-      .from('deals')
-      .delete()
-      .eq('id', id)
-
+    const { error } = await supabase.from('deals').delete().eq('id', id)
     if (error) throw error
     return { success: true }
   } catch (err) {
     console.error('Error deleting deal:', err)
     return { success: false, error: err.message }
-  }
-}
-
-/**
- * Search deals by query
- */
-export async function searchDeals(query) {
-  try {
-    if (!query) {
-      return getAllDeals()
-    }
-
-    const { data, error } = await supabase
-      .from('deals')
-      .select('*')
-      .or(
-        `entity.ilike.%${query}%,code_name.ilike.%${query}%,description.ilike.%${query}%`
-      )
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return { success: true, data: data || [] }
-  } catch (err) {
-    console.error('Error searching deals:', err)
-    return { success: false, data: [], error: err.message }
-  }
-}
-
-/**
- * Filter deals by category
- */
-export async function filterDealsByCategory(category) {
-  try {
-    if (category === 'All') {
-      return getAllDeals()
-    }
-
-    const { data, error } = await supabase
-      .from('deals')
-      .select('*')
-      .eq('category', category)
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return { success: true, data: data || [] }
-  } catch (err) {
-    console.error('Error filtering deals:', err)
-    return { success: false, data: [], error: err.message }
   }
 }
