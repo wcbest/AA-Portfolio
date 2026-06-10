@@ -1,61 +1,55 @@
 import { supabase } from './supabaseClient'
 
 function missingClientResponse() {
-  return { success: false, approved: false, isAdmin: false, error: 'Supabase client not initialized. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
+  return { success: false, approved: false, role: 'viewer', error: 'Supabase client not initialized. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
 }
 
-/**
- * Validate if an email is in the approved_emails table
- */
 export async function isEmailApproved(email) {
   if (!supabase) return missingClientResponse()
   try {
     const { data, error } = await supabase
       .from('approved_emails')
-      .select('id, is_admin')
+      .select('id, is_admin, role')
       .eq('email', email.toLowerCase())
       .single()
 
-    if (error) {
-      return { approved: false, isAdmin: false }
-    }
+    if (error) return { approved: false, role: 'viewer' }
 
-    return { approved: true, isAdmin: data?.is_admin || false }
+    // Derive role: prefer explicit role column, fall back to is_admin flag
+    const role = data?.role || (data?.is_admin ? 'admin' : 'viewer')
+    return { approved: true, role }
   } catch (err) {
     console.error('Error checking approved email:', err)
-    return { approved: false, isAdmin: false }
+    return { approved: false, role: 'viewer' }
   }
 }
 
-/**
- * Get all approved emails (admin only)
- */
 export async function getApprovedEmails() {
   if (!supabase) return []
   try {
     const { data, error } = await supabase
       .from('approved_emails')
-      .select('email, is_admin')
+      .select('email, is_admin, role')
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data || []
+    return (data || []).map(row => ({
+      ...row,
+      role: row.role || (row.is_admin ? 'admin' : 'viewer'),
+    }))
   } catch (err) {
     console.error('Error fetching approved emails:', err)
     return []
   }
 }
 
-/**
- * Add or update an approved email
- */
-export async function addApprovedEmail(email, isAdmin = false) {
+export async function addApprovedEmail(email, role = 'viewer') {
   if (!supabase) return { success: false, error: 'Supabase client not initialized.' }
   try {
     const { data, error } = await supabase
       .from('approved_emails')
       .upsert(
-        { email: email.toLowerCase(), is_admin: isAdmin },
+        { email: email.toLowerCase(), role, is_admin: role === 'admin' },
         { onConflict: 'email' }
       )
       .select()
@@ -68,9 +62,6 @@ export async function addApprovedEmail(email, isAdmin = false) {
   }
 }
 
-/**
- * Remove an approved email
- */
 export async function removeApprovedEmail(email) {
   if (!supabase) return { success: false, error: 'Supabase client not initialized.' }
   try {

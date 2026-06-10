@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Agentation } from "agentation";
 import {
   Add, ArrowDown2, ArrowUp2, Briefcase, Building, Chart, Chart2,
@@ -17,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import {
   isEmailApproved,
@@ -30,6 +32,9 @@ import {
   createDeal,
   updateDeal,
   deleteDeal,
+  uploadTeaser,
+  getTeaserPublicUrl,
+  removeTeaser,
 } from "@/lib/supabaseDeals";
 
 // ─── Iconsax outline SVG icons ───────────────
@@ -133,7 +138,23 @@ function fmtMoney(n) {
   return `$${n.toLocaleString()}`;
 }
 
-const serviceBadge = { Funding: "bg-emerald-50 text-emerald-700 border-emerald-200", Brokerage: "bg-blue-50 text-blue-700 border-blue-200", Consulting: "bg-amber-50 text-amber-700 border-amber-200" };
+const ROLE_META = {
+  admin:  { label: "Admin",  badge: "bg-[#f5eef8] border-[#CFB6D7] text-[#7a4d8a]" },
+  editor: { label: "Editor", badge: "bg-[#eef1fb] border-[#B2BEE1] text-[#3d5899]" },
+  viewer: { label: "Viewer", badge: "bg-zinc-100 border-zinc-200 text-zinc-500" },
+};
+
+function getPerms(role) {
+  return {
+    canCreate: role === "admin" || role === "editor",
+    canUpdate: role === "admin" || role === "editor",
+    canDelete: role === "admin",
+    canManageUsers: role === "admin",
+    isAdmin: role === "admin",
+  };
+}
+
+const serviceBadge = { Funding: "bg-[#f5faeb] text-[#42793A] border-[#C3DB75]", Brokerage: "bg-[#f5eef8] text-[#7a4d8a] border-[#CFB6D7]", Consulting: "bg-[#fef6e8] text-[#a0620e] border-[#F4B858]" };
 
 const SIZE_RANGES = [
   { value: "all",    label: "All sizes" },
@@ -147,17 +168,17 @@ const SIZE_RANGES = [
 function normalizeDeal(d) {
   return {
     ...d,
-    codeName: d.codeName ?? d.code_name ?? "",
-    service:  d.service  ?? "",
-    about:    d.about    ?? "",
-    industry: d.industry ?? "",
-    ebitda:   d.ebitda   ?? null,
-    revenues: d.revenues ?? null,
+    codeName:   d.codeName   ?? d.code_name   ?? "",
+    service:    d.service    ?? "",
+    about:      d.about      ?? "",
+    industry:   d.industry   ?? "",
+    ebitda:     d.ebitda     ?? null,
+    revenues:   d.revenues   ?? null,
+    teaserPath: d.teaserPath ?? d.teaser_path ?? null,
   };
 }
 
 function ls(key, fallback) { try { const v = sessionStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } }
-function ss(key, val) { try { sessionStorage.setItem(key, JSON.stringify(val)); } catch {} }
 
 // ─── Auth ─────────────────────────────────────
 function AuthScreen({ onLogin }) {
@@ -177,21 +198,20 @@ function AuthScreen({ onLogin }) {
     }
 
     let approved = false;
-    let isAdmin = false;
+    let role = "viewer";
 
-    // Try Supabase first; fall back to local list when not configured
     const result = await isEmailApproved(address);
     if (result.approved) {
       approved = true;
-      isAdmin = result.isAdmin;
+      role = result.role;
     } else {
       const localList = ls("aa_approved", APPROVED_EMAILS);
       approved = localList.includes(address);
-      isAdmin = ADMIN_EMAILS.includes(address);
+      role = ADMIN_EMAILS.includes(address) ? "admin" : "viewer";
     }
 
     if (approved) {
-      onLogin({ email: address, isAdmin });
+      onLogin({ email: address, role });
     } else {
       setErr("This email is not approved. Contact your administrator for access.");
     }
@@ -235,7 +255,7 @@ function AuthScreen({ onLogin }) {
             <Button
               onClick={submit}
               disabled={loading || !email}
-              className="w-full h-10 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-light"
+              className="w-full h-10 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white text-sm font-light"
             >
               {loading ? "Verifying…" : "Access dashboard"}
             </Button>
@@ -251,8 +271,10 @@ function AuthScreen({ onLogin }) {
 }
 
 // ─── Deal Modal ───────────────────────────────
-function DealModal({ deal, isAdmin, teasers, onUpload, onClose, onUpdate, industries = [] }) {
+function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClose, onUpdate, onDelete, industries = [] }) {
   const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ ...deal });
   const fileRef = useRef();
   const teaser = teasers[deal.id];
@@ -260,12 +282,16 @@ function DealModal({ deal, isAdmin, teasers, onUpload, onClose, onUpdate, indust
   function handleFile(e) {
     const f = e.target.files[0];
     if (!f) return;
-    const r = new FileReader();
-    r.onload = ev => onUpload(deal.id, ev.target.result, f.name);
-    r.readAsDataURL(f);
+    onUpload(deal.id, f);
   }
 
   function saveEdit() { onUpdate(form); setEditing(false); }
+
+  async function handleDelete() {
+    setDeleting(true);
+    await onDelete(deal.id);
+    setDeleting(false);
+  }
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -280,17 +306,35 @@ function DealModal({ deal, isAdmin, teasers, onUpload, onClose, onUpdate, indust
             <p className="text-sm text-zinc-400 font-light">{deal.codeName}</p>
           </div>
           <div className="flex items-center gap-2">
-            {isAdmin && (editing ? (
+            {confirmDelete ? (
               <>
-                <Button onClick={saveEdit} className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-light h-9 px-5 text-sm whitespace-nowrap">Save changes</Button>
-                <Button onClick={() => setEditing(false)} variant="outline" className="rounded-xl border-zinc-200 font-light h-9 px-5 text-sm">Cancel</Button>
+                <span className="text-xs text-zinc-500 font-light mr-1">Delete this deal?</span>
+                <Button onClick={handleDelete} disabled={deleting} className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-light h-9 px-5 text-sm whitespace-nowrap disabled:opacity-50">
+                  {deleting ? "Deleting…" : "Yes, delete"}
+                </Button>
+                <Button onClick={() => setConfirmDelete(false)} variant="outline" className="rounded-xl border-zinc-200 font-light h-9 px-5 text-sm">Cancel</Button>
               </>
             ) : (
-              <Button onClick={() => setEditing(true)} size="sm" className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-light h-9 px-5 text-sm whitespace-nowrap">
-                <Ic name="edit" size={14} />
-                Edit deal
-              </Button>
-            ))}
+              <>
+                {perms.canUpdate && !editing && (
+                  <Button onClick={() => setEditing(true)} size="sm" className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-5 text-sm whitespace-nowrap">
+                    <Ic name="edit" size={14} />
+                    Edit deal
+                  </Button>
+                )}
+                {perms.canUpdate && editing && (
+                  <>
+                    <Button onClick={saveEdit} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-5 text-sm whitespace-nowrap">Save changes</Button>
+                    <Button onClick={() => setEditing(false)} variant="outline" className="rounded-xl border-zinc-200 font-light h-9 px-5 text-sm">Cancel</Button>
+                  </>
+                )}
+                {perms.canDelete && !editing && (
+                  <Button onClick={() => setConfirmDelete(true)} variant="outline" size="sm" className="inline-flex items-center justify-center h-9 w-9 rounded-xl border-zinc-200 text-zinc-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50">
+                    <Ic name="trash" size={15} />
+                  </Button>
+                )}
+              </>
+            )}
             <Button onClick={onClose} variant="outline" size="sm" className="inline-flex items-center justify-center h-9 w-9 rounded-xl border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50">
               <Ic name="close" size={16} />
             </Button>
@@ -299,7 +343,7 @@ function DealModal({ deal, isAdmin, teasers, onUpload, onClose, onUpdate, indust
 
         {/* Deal overview — always visible */}
         <div className="px-7 pt-4 pb-5">
-          {editing && isAdmin ? (
+          {editing && perms.canUpdate ? (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-x-5 gap-y-5">
                 {/* Entity name — full width */}
@@ -394,19 +438,21 @@ function DealModal({ deal, isAdmin, teasers, onUpload, onClose, onUpdate, indust
                   {teaser.name}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button onClick={() => window.open(teaser.data, "_blank")} variant="outline" size="sm" className="inline-flex items-center gap-1.5 rounded-xl border-zinc-200 font-light h-8 text-xs">
-                    <Ic name="eye" size={13} />
-                    View full
-                  </Button>
-                  {isAdmin && (
+                  {perms.canUpdate && (
                     <Button onClick={() => fileRef.current.click()} variant="outline" size="sm" className="inline-flex items-center gap-1.5 rounded-xl border-zinc-200 font-light h-8 text-xs">
                       <Ic name="upload" size={13} />
                       Replace
                     </Button>
                   )}
+                  {perms.canDelete && (
+                    <Button onClick={() => onRemoveTeaser(deal.id)} variant="outline" size="sm" className="inline-flex items-center gap-1.5 rounded-xl border-red-200 text-red-500 hover:bg-red-50 font-light h-8 text-xs">
+                      <Ic name="trash" size={13} />
+                      Remove teaser
+                    </Button>
+                  )}
                 </div>
               </div>
-              <iframe src={teaser.data} className="w-full rounded-xl border border-zinc-200" style={{ height: 440 }} title="Deal Teaser" />
+              <iframe src={teaser.url} className="w-full rounded-xl border border-zinc-200" style={{ height: 440 }} title="Deal Teaser" />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
@@ -414,11 +460,11 @@ function DealModal({ deal, isAdmin, teasers, onUpload, onClose, onUpdate, indust
                 <Ic name="pdf" size={22} className="text-zinc-400" />
               </div>
               <div>
-                <p className="text-sm text-zinc-700 font-light">{isAdmin ? "No teaser uploaded yet" : "No teaser available for this deal"}</p>
-                <p className="text-xs text-zinc-400 font-light mt-1">{isAdmin ? "Upload a PDF to make it available to all users." : "Check back later or contact your administrator."}</p>
+                <p className="text-sm text-zinc-700 font-light">{perms.canUpdate ? "No teaser uploaded yet" : "No teaser available for this deal"}</p>
+                <p className="text-xs text-zinc-400 font-light mt-1">{perms.canUpdate ? "Upload a PDF to make it available to all users." : "Check back later or contact your administrator."}</p>
               </div>
-              {isAdmin && (
-                <Button onClick={() => fileRef.current.click()} className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-light h-9 px-6 text-sm whitespace-nowrap">
+              {perms.canUpdate && (
+                <Button onClick={() => fileRef.current.click()} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-6 text-sm whitespace-nowrap">
                   <Ic name="upload" size={15} />
                   Upload deal teaser
                 </Button>
@@ -433,134 +479,289 @@ function DealModal({ deal, isAdmin, teasers, onUpload, onClose, onUpdate, indust
 }
 
 // ─── Admin Panel ──────────────────────────────
-function AdminPanel({ deals, setDeals, approvedEmails, setApprovedEmails, onClose, industries = [] }) {
+function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
   const [newEmail, setNewEmail] = useState("");
-  const [newDeal, setNewDeal] = useState({ entity: "", codeName: "", service: "Funding", about: "", industry: "", size: "", ebitda: "", revenues: "" });
+  const [newRole, setNewRole] = useState("viewer");
+  const [emailError, setEmailError] = useState("");
+  const [emailSuccess, setEmailSuccess] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [removingEmail, setRemovingEmail] = useState(null);
+
+  function flashEmail(err, ok) {
+    if (err) { setEmailError(err); setEmailSuccess(""); }
+    else { setEmailSuccess(ok); setEmailError(""); setTimeout(() => setEmailSuccess(""), 3000); }
+  }
 
   async function addEmail() {
     const email = newEmail.trim().toLowerCase();
-    if (!email || approvedEmails.some(item => item.email === email)) return;
-    const result = await addApprovedEmail(email, false);
+    if (!email) return;
+    if (approvedEmails.some(item => item.email === email)) { flashEmail("This email is already approved."); return; }
+    setSavingEmail(true);
+    const result = await addApprovedEmail(email, newRole);
+    setSavingEmail(false);
     if (result.success) {
-      setApprovedEmails([...approvedEmails, { email, is_admin: false }]);
+      setApprovedEmails([...approvedEmails, { email, role: newRole, is_admin: newRole === "admin" }]);
       setNewEmail("");
+      setNewRole("viewer");
+      flashEmail("", `${email} added as ${newRole}.`);
+    } else {
+      flashEmail(result.error || "Failed to add email.");
     }
   }
 
   async function removeEmail(email) {
     const existing = approvedEmails.find(item => item.email === email);
-    if (!existing || existing.is_admin) return;
+    if (!existing || existing.role === "admin") return;
+    setRemovingEmail(email);
     const result = await removeApprovedEmail(email);
+    setRemovingEmail(null);
     if (result.success) {
       setApprovedEmails(approvedEmails.filter(item => item.email !== email));
+    } else {
+      flashEmail(result.error || "Failed to remove email.");
     }
   }
 
-  async function addDeal() {
-    if (!newDeal.entity) return;
-    const result = await createDeal(newDeal);
-    if (result.success && result.data) {
-      setDeals([normalizeDeal(result.data), ...deals]);
-      setNewDeal({ entity: "", codeName: "", service: "Funding", about: "", industry: "", size: "", ebitda: "", revenues: "" });
-    }
+  const [editingRole, setEditingRole] = useState(null);
+  const [pendingRole, setPendingRole] = useState("viewer");
+  const [savingRole, setSavingRole] = useState(false);
+
+  function startEditRole(email, currentRole) {
+    setEditingRole(email);
+    setPendingRole(currentRole);
   }
 
-  async function removeDeal(id) {
-    const result = await deleteDeal(id);
+  async function saveRole(email) {
+    setSavingRole(true);
+    const result = await addApprovedEmail(email, pendingRole);
+    setSavingRole(false);
     if (result.success) {
-      setDeals(deals.filter(d => d.id !== id));
+      setApprovedEmails(approvedEmails.map(item =>
+        item.email === email
+          ? { ...item, role: pendingRole, is_admin: pendingRole === "admin" }
+          : item
+      ));
+      setEditingRole(null);
+      flashEmail("", `${email} updated to ${pendingRole}.`);
+    } else {
+      flashEmail(result.error || "Failed to update role.");
+    }
+  }
+
+  const selectClass = "h-10 px-3 text-sm font-light border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900";
+  const selectSmClass = "h-8 px-3 text-xs font-light border border-zinc-200 rounded-xl bg-white text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900";
+
+  return (
+    <div>
+      {/* Page header */}
+      <div className="mb-7 rounded-[28px] border border-zinc-100 bg-white p-6 shadow-sm">
+        <div>
+          <p className="text-xs uppercase tracking-[0.28em] text-zinc-400 font-semibold">Admin</p>
+          <h1 className="mt-3 text-3xl font-semibold text-zinc-900 tracking-tight">Settings</h1>
+          <p className="mt-3 text-sm text-zinc-500 leading-relaxed">Manage user access. Admins have full control, editors can create and update, viewers can only read.</p>
+        </div>
+        <div className="mt-5 flex flex-wrap gap-3 text-xs font-medium text-zinc-500">
+          <span className="rounded-full bg-zinc-50 px-3 py-2">Approved users: {approvedEmails.length}</span>
+          <span className="rounded-full bg-zinc-50 px-3 py-2">Total deals: {deals.length}</span>
+        </div>
+      </div>
+
+      {/* Access control — full width */}
+      <div className="rounded-[28px] border border-zinc-100 bg-white p-6 shadow-sm mb-5">
+        <p className="text-xs uppercase tracking-[0.28em] text-zinc-400 font-semibold mb-5">Access control</p>
+
+        {emailError && <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-light text-red-700">{emailError}</div>}
+        {emailSuccess && <div className="mb-4 rounded-2xl border border-[#C3DB75] bg-[#f5faeb] px-4 py-3 text-sm font-light text-[#42793A]">{emailSuccess}</div>}
+
+        <div className="flex gap-2 mb-5">
+          <Input
+            value={newEmail}
+            onChange={e => { setNewEmail(e.target.value); setEmailError(""); }}
+            onKeyDown={e => e.key === "Enter" && addEmail()}
+            placeholder="new@email.com"
+            className="h-10 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 px-4 flex-1"
+          />
+          <select value={newRole} onChange={e => setNewRole(e.target.value)} className={selectClass}>
+            <option value="viewer">Viewer</option>
+            <option value="editor">Editor</option>
+            <option value="admin">Admin</option>
+          </select>
+          <Button onClick={addEmail} disabled={savingEmail} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-10 px-5 text-sm whitespace-nowrap disabled:opacity-50">
+            <Ic name="plus" size={14} />
+            {savingEmail ? "Adding…" : "Add user"}
+          </Button>
+        </div>
+
+        {/* Role legend */}
+        <div className="flex gap-3 mb-5 flex-wrap">
+          {Object.entries(ROLE_META).map(([role, { label, badge }]) => (
+            <div key={role} className="flex items-center gap-2 text-xs text-zinc-500 font-light">
+              <span className={`px-2 py-0.5 rounded-full border text-xs font-light ${badge}`}>{label}</span>
+              <span>{role === "admin" ? "Full access" : role === "editor" ? "Create & edit" : "Read only"}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          {approvedEmails.map(approved => {
+            const role = approved.role || (approved.is_admin ? "admin" : "viewer");
+            const meta = ROLE_META[role] || ROLE_META.viewer;
+            const isEditing = editingRole === approved.email;
+
+            return (
+              <div key={approved.email} className={`flex items-center justify-between px-4 py-3 rounded-2xl transition-colors ${isEditing ? "bg-white border border-zinc-200" : "bg-zinc-50"}`}>
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <Ic name="mail" size={14} className="text-zinc-400 shrink-0" />
+                  <span className="text-sm font-light text-zinc-700 truncate">{approved.email}</span>
+                  {!isEditing && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-light shrink-0 ${meta.badge}`}>{meta.label}</span>
+                  )}
+                </div>
+
+                {isEditing ? (
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <select
+                      value={pendingRole}
+                      onChange={e => setPendingRole(e.target.value)}
+                      className={selectSmClass}
+                    >
+                      <option value="viewer">Viewer</option>
+                      <option value="editor">Editor</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                    <Button
+                      onClick={() => saveRole(approved.email)}
+                      disabled={savingRole}
+                      className="h-8 px-3 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light text-xs whitespace-nowrap disabled:opacity-50"
+                    >
+                      {savingRole ? "Saving…" : "Save"}
+                    </Button>
+                    <Button
+                      onClick={() => setEditingRole(null)}
+                      variant="outline"
+                      className="h-8 px-3 rounded-xl border-zinc-200 font-light text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 shrink-0 ml-3">
+                    <Button
+                      onClick={() => startEditRole(approved.email, role)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 rounded-xl hover:bg-zinc-100 text-zinc-400 hover:text-zinc-700"
+                      title="Edit role"
+                    >
+                      <Ic name="edit" size={13} />
+                    </Button>
+                    {role !== "admin" && (
+                      <Button
+                        onClick={() => removeEmail(approved.email)}
+                        disabled={removingEmail === approved.email}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 rounded-xl hover:bg-red-50 text-zinc-400 hover:text-red-500 disabled:opacity-40"
+                        title="Remove user"
+                      >
+                        <Ic name="trash" size={13} />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Add Deal Modal ───────────────────────────
+const EMPTY_NEW_DEAL = { entity: "", codeName: "", service: "Funding", about: "", industry: "", size: "", ebitda: "", revenues: "" };
+
+function AddDealModal({ onClose, onAdd, industries = [] }) {
+  const [form, setForm] = useState(EMPTY_NEW_DEAL);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const fieldClass = "w-full bg-zinc-50 px-4 h-10 border border-zinc-200 rounded-xl text-sm font-light text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900";
+  const labelClass = "text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2 block";
+
+  async function handleSave() {
+    if (!form.entity.trim()) { setError("Entity name is required."); return; }
+    setSaving(true);
+    const result = await createDeal(form);
+    setSaving(false);
+    if (result.success && result.data) {
+      onAdd(normalizeDeal(result.data));
+      onClose();
+    } else {
+      setError(result.error || "Failed to create deal.");
     }
   }
 
   return (
     <Dialog open onOpenChange={onClose}>
       <div className="fixed inset-0 z-40 bg-black/25 backdrop-blur-sm" onClick={onClose} />
-      <DialogContent className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col overflow-y-auto bg-white shadow-2xl" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
-        <DialogHeader className="flex items-center justify-between px-7 pt-6 pb-0 border-b border-zinc-200">
-          <DialogTitle className="text-base font-semibold text-zinc-900 flex items-center gap-2">
-            <Ic name="settings" size={16} className="text-zinc-500" />
-            Admin panel
-          </DialogTitle>
-          <Button onClick={onClose} variant="outline" size="sm" className="inline-flex items-center justify-center h-9 w-9 rounded-xl border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50">
-            <Ic name="close" size={16} />
-          </Button>
+      <DialogContent className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col overflow-y-auto bg-white shadow-2xl" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
+        <DialogHeader className="flex items-center justify-between px-7 pt-6 pb-5 border-b border-zinc-100">
+          <DialogTitle className="text-base font-semibold text-zinc-900">New deal</DialogTitle>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-5 text-sm disabled:opacity-50">
+              {saving ? "Saving…" : "Save deal"}
+            </Button>
+            <Button onClick={onClose} variant="outline" size="sm" className="inline-flex items-center justify-center h-9 w-9 rounded-xl border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50">
+              <Ic name="close" size={16} />
+            </Button>
+          </div>
         </DialogHeader>
 
-        <Tabs defaultValue="emails" className="mt-3">
-          <TabsList className="mx-7 bg-zinc-100 rounded-xl p-1 h-9">
-            <TabsTrigger value="emails" className="text-xs font-light rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-1.5">
-              <Ic name="lock" size={13} />
-              Approved emails
-            </TabsTrigger>
-            <TabsTrigger value="deals" className="text-xs font-light rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm flex items-center gap-1.5">
-              <Ic name="briefcase" size={13} />
-              Manage deals
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="emails" className="px-7 pb-7 pt-5 mt-0 space-y-4">
-            <div className="flex gap-2">
-              <Input value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && addEmail()} placeholder="new@email.com" className="h-9 text-sm font-light border-zinc-200 rounded-xl" />
-              <Button onClick={addEmail} size="sm" className="rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-light h-9 gap-1.5">
-                <Ic name="plus" size={14} />
-                Add
-              </Button>
+        <div className="px-7 py-6 space-y-1">
+          {error && (
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-light text-red-700">{error}</div>
+          )}
+          <div className="grid grid-cols-2 gap-x-5 gap-y-5">
+            <div className="col-span-2">
+              <label className={labelClass}>Entity name *</label>
+              <input value={form.entity} onChange={e => { setForm(p => ({ ...p, entity: e.target.value })); setError(""); }} className={fieldClass} />
             </div>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {approvedEmails.map(approved => (
-                <div key={approved.email} className="flex items-center justify-between px-4 py-2.5 bg-zinc-50 rounded-xl">
-                  <div className="flex items-center gap-2">
-                    <Ic name="mail" size={14} className="text-zinc-400" />
-                    <span className="text-sm font-light text-zinc-700">{approved.email}</span>
-                    {approved.is_admin && <span className="text-xs px-2 py-0.5 rounded-full bg-violet-50 border border-violet-200 text-violet-600 font-light">Admin</span>}
-                  </div>
-                  {!approved.is_admin && (
-                    <Button onClick={() => removeEmail(approved.email)} variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-lg hover:bg-red-50 text-zinc-400 hover:text-red-500">
-                      <Ic name="trash" size={14} />
-                    </Button>
-                  )}
-                </div>
-              ))}
+            <div>
+              <label className={labelClass}>Code name</label>
+              <input value={form.codeName} onChange={e => setForm(p => ({ ...p, codeName: e.target.value }))} className={fieldClass} />
             </div>
-          </TabsContent>
-
-          <TabsContent value="deals" className="px-7 pb-7 pt-5 mt-0 space-y-5">
-            <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-4 space-y-3">
-              <p className="text-xs text-zinc-500 font-light">Add new deal</p>
-              <div className="grid grid-cols-2 gap-2.5">
-                {[["entity","Entity name *"],["codeName","Code name"],["about","About entity"],["size","Nominal size (USD)"],["ebitda","EBITDA (USD)"],["revenues","Revenues (USD)"]].map(([k, lbl]) => (
-                  <Input key={k} value={newDeal[k]} onChange={e => setNewDeal(p => ({ ...p, [k]: e.target.value }))} placeholder={lbl} className={`h-9 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 ${k === "about" ? "col-span-2" : ""}`} />
-                ))}
-                <select value={newDeal.service} onChange={e => setNewDeal(p => ({ ...p, service: e.target.value }))}
-                  className="h-9 px-3 text-sm font-light border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900">
-                  {["Funding", "Brokerage", "Consulting"].map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
-                <select value={newDeal.industry} onChange={e => setNewDeal(p => ({ ...p, industry: e.target.value }))}
-                  className="h-9 px-3 text-sm font-light border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900">
-                  <option value="">Industry…</option>
-                  {industries.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
-              </div>
-              <Button onClick={addDeal} size="sm" className="rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white font-light h-9 gap-1.5 text-xs">
-                <Ic name="plus" size={14} />
-                Add deal
-              </Button>
+            <div>
+              <label className={labelClass}>Service</label>
+              <select value={form.service} onChange={e => setForm(p => ({ ...p, service: e.target.value }))} className={fieldClass + " appearance-none"}>
+                {["Funding", "Brokerage", "Consulting"].map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
             </div>
-            <div className="space-y-2 max-h-52 overflow-y-auto">
-              {deals.map(d => (
-                <div key={d.id} className="flex items-center justify-between px-4 py-2.5 bg-zinc-50 rounded-xl">
-                  <div>
-                    <span className="text-sm font-light text-zinc-800">{d.entity}</span>
-                    <span className="text-xs text-zinc-400 font-light ml-2">{d.codeName}</span>
-                  </div>
-                  <Button onClick={() => removeDeal(d.id)} variant="ghost" size="sm" className="h-7 w-7 p-0 rounded-lg hover:bg-red-50 text-zinc-400 hover:text-red-500">
-                    <Ic name="trash" size={14} />
-                  </Button>
-                </div>
-              ))}
+            <div className="col-span-2">
+              <label className={labelClass}>Industry</label>
+              <select value={form.industry} onChange={e => setForm(p => ({ ...p, industry: e.target.value }))} className={fieldClass + " appearance-none"}>
+                <option value="">Select industry…</option>
+                {industries.map(v => <option key={v} value={v}>{v}</option>)}
+              </select>
             </div>
-          </TabsContent>
-        </Tabs>
+            <div>
+              <label className={labelClass}>Nominal size (USD)</label>
+              <input type="number" value={form.size} onChange={e => setForm(p => ({ ...p, size: e.target.value }))} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>EBITDA (USD)</label>
+              <input type="number" value={form.ebitda} onChange={e => setForm(p => ({ ...p, ebitda: e.target.value }))} className={fieldClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Revenues (USD)</label>
+              <input type="number" value={form.revenues} onChange={e => setForm(p => ({ ...p, revenues: e.target.value }))} className={fieldClass} />
+            </div>
+            <div className="col-span-2">
+              <label className={labelClass}>About</label>
+              <textarea value={form.about} onChange={e => setForm(p => ({ ...p, about: e.target.value }))} rows={4} className="w-full bg-zinc-50 px-4 py-3 border border-zinc-200 rounded-xl text-sm font-light text-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -576,14 +777,14 @@ const KPI_ICONS = {
 // ─── KPI Card ─────────────────────────────────
 function KpiCard({ label, value, sub, icon }) {
   return (
-    <div className="bg-white border border-zinc-100 rounded-[28px] p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="bg-[#42793A] rounded-[28px] p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase tracking-[0.22em] text-zinc-400 font-semibold mb-2">{label}</p>
-          <p className="text-2xl font-semibold text-zinc-900 tracking-tight tabular-nums truncate">{value}</p>
-          <p className="text-xs text-zinc-500 font-light mt-2 leading-snug">{sub}</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-[#C3DB75] font-semibold mb-2">{label}</p>
+          <p className="text-3xl font-medium text-white tracking-tight tabular-nums truncate">{value}</p>
+          <p className="text-xs text-[#a8d880] font-light mt-2 leading-snug">{sub}</p>
         </div>
-        <div className="ml-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500">
+        <div className="ml-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-[#336030] text-[#C3DB75]">
           {KPI_ICONS[icon] ?? <Briefcase size={20} variant="Outline" />}
         </div>
       </div>
@@ -592,16 +793,21 @@ function KpiCard({ label, value, sub, icon }) {
 }
 
 // ─── Dashboard ────────────────────────────────
-function Dashboard({ userEmail, isAdmin, onLogout }) {
+function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
+  const perms = getPerms(userRole);
+  const { isAdmin } = perms;
   const [deals, setDeals] = useState([]);
-  const [teasers, setTeasers] = useState(() => ls("aa_teasers", {}));
+  const [teasers, setTeasers] = useState({});
   const [approvedEmails, setApprovedEmails] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
-  const [showAdmin, setShowAdmin] = useState(false);
+  const [view, setView] = useState("dashboard");
+  const [showAddDeal, setShowAddDeal] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterService, setFilterService] = useState("all");
   const [filterIndustry, setFilterIndustry] = useState("all");
   const [filterSize, setFilterSize] = useState("all");
+  const [filterTeaser, setFilterTeaser] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [sortField, setSortField] = useState("id");
   const [sortDir, setSortDir] = useState("asc");
@@ -616,7 +822,17 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
       if (!dealsResult.success) {
         setError(dealsResult.error || "Unable to load deals.");
       } else {
-        setDeals((dealsResult.data || []).map(normalizeDeal));
+        const normalized = (dealsResult.data || []).map(normalizeDeal);
+        setDeals(normalized);
+        const map = {};
+        normalized.forEach(d => {
+          if (d.teaserPath) {
+            const url = getTeaserPublicUrl(d.teaserPath);
+            const name = d.teaserPath.split('/').pop();
+            map[d.id] = { url, name };
+          }
+        });
+        setTeasers(map);
       }
       const emails = await getApprovedEmails();
       setApprovedEmails(emails);
@@ -625,9 +841,16 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
     loadDashboard();
   }, []);
 
-  function handleUpload(id, data, name) {
-    const u = { ...teasers, [id]: { data, name } };
-    setTeasers(u); ss("aa_teasers", u);
+  async function handleUpload(dealId, file) {
+    const result = await uploadTeaser(dealId, file);
+    if (result.success) {
+      const url = getTeaserPublicUrl(result.path);
+      setTeasers(prev => ({ ...prev, [dealId]: { url, name: file.name } }));
+      setDeals(prev => prev.map(d => d.id === dealId ? { ...d, teaserPath: result.path } : d));
+      if (selectedDeal?.id === dealId) setSelectedDeal(prev => ({ ...prev, teaserPath: result.path }));
+    } else {
+      setError(result.error || "Failed to upload teaser.");
+    }
   }
 
   async function handleUpdateDeal(updated) {
@@ -639,6 +862,107 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
     } else {
       setError(result.error || "Unable to update the deal.");
     }
+  }
+
+  async function handleDeleteDeal(id) {
+    const result = await deleteDeal(id);
+    if (result.success) {
+      setDeals(prev => prev.filter(d => d.id !== id));
+      setSelectedDeal(null);
+    } else {
+      setError(result.error || "Unable to delete the deal.");
+    }
+  }
+
+  async function handleRemoveTeaser(dealId) {
+    const deal = deals.find(d => d.id === dealId);
+    const result = await removeTeaser(dealId, deal?.teaserPath ?? null);
+    if (result.success) {
+      setTeasers(prev => { const next = { ...prev }; delete next[dealId]; return next; });
+      setDeals(prev => prev.map(d => d.id === dealId ? { ...d, teaserPath: null } : d));
+      if (selectedDeal?.id === dealId) setSelectedDeal(prev => ({ ...prev, teaserPath: null }));
+    } else {
+      setError(result.error || "Unable to remove teaser.");
+    }
+  }
+
+  function exportExcel() {
+    const rows = filtered.map((d, i) => ({
+      "#": i + 1,
+      "Entity": d.entity,
+      "Code Name": d.codeName,
+      "Service": d.service,
+      "Industry": d.industry || "—",
+      "Nominal Size (USD)": d.size || 0,
+      "EBITDA (USD)": d.ebitda ?? "",
+      "Revenues (USD)": d.revenues ?? "",
+      "Has Teaser": teasers[d.id] ? "Yes" : "No",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [4, 28, 18, 14, 22, 20, 16, 16, 12].map(w => ({ wch: w }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Deal Pipeline");
+    XLSX.writeFile(wb, `african-aspirations-deals-${new Date().toISOString().slice(0,10)}.xlsx`);
+    setExportOpen(false);
+  }
+
+  function exportPDF() {
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.setTextColor(24, 24, 27);
+    doc.text("African Aspirations", 14, 18);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(113, 113, 122);
+    doc.text("Deal Pipeline Report", 14, 25);
+    doc.text(`Generated: ${date}`, 14, 31);
+    doc.text(`Showing ${filtered.length} of ${deals.length} deals`, 14, 37);
+
+    autoTable(doc, {
+      startY: 44,
+      head: [["#", "Entity", "Code Name", "Service", "Industry", "Nominal Size", "EBITDA", "Revenues", "Teaser"]],
+      body: filtered.map((d, i) => [
+        i + 1,
+        d.entity,
+        d.codeName || "—",
+        d.service,
+        d.industry || "—",
+        d.size ? `$${Number(d.size).toLocaleString()}` : "TBD",
+        d.ebitda ? `$${Number(d.ebitda).toLocaleString()}` : "—",
+        d.revenues ? `$${Number(d.revenues).toLocaleString()}` : "—",
+        teasers[d.id] ? "Yes" : "No",
+      ]),
+      styles: { font: "helvetica", fontSize: 8, cellPadding: 3, textColor: [24, 24, 27] },
+      headStyles: { fillColor: [24, 24, 27], textColor: 255, fontStyle: "bold", fontSize: 8 },
+      alternateRowStyles: { fillColor: [250, 250, 250] },
+      columnStyles: {
+        0: { cellWidth: 8 },
+        1: { cellWidth: 45 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 22 },
+        4: { cellWidth: 35 },
+        5: { cellWidth: 25 },
+        6: { cellWidth: 22 },
+        7: { cellWidth: 22 },
+        8: { cellWidth: 14 },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(161, 161, 170);
+      doc.text(`Page ${i} of ${pageCount} — Confidential`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
+    }
+
+    doc.save(`african-aspirations-deals-${new Date().toISOString().slice(0,10)}.pdf`);
+    setExportOpen(false);
   }
 
   const industries = useMemo(() => {
@@ -661,6 +985,7 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
           if (filterSize === "1m"     && !(s >= 1000000 && s < 5000000)) return false;
           if (filterSize === "5m"     && !(s >= 5000000)) return false;
         }
+        if (filterTeaser && !teasers[d.id]) return false;
         return true;
       })
       .sort((a, b) => {
@@ -671,12 +996,13 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
         if (av > bv) return sortDir === "asc" ? 1 : -1;
         return 0;
       });
-  }, [deals, search, filterService, filterIndustry, filterSize, sortField, sortDir]);
+  }, [deals, search, filterService, filterIndustry, filterSize, filterTeaser, teasers, sortField, sortDir]);
 
   // KPI stats computed from FILTERED set
   const totalSize = filtered.reduce((s, d) => s + (d.size || 0), 0);
   const byService = { Funding: filtered.filter(d => d.service === "Funding").length, Brokerage: filtered.filter(d => d.service === "Brokerage").length, Consulting: filtered.filter(d => d.service === "Consulting").length };
   const teaserCount = filtered.filter(d => teasers[d.id]).length;
+  const industryCount = new Set(filtered.map(d => d.industry).filter(Boolean)).size;
 
   function toggleSort(field) {
     if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
@@ -690,10 +1016,10 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
       : <Ic name="arrowDown" size={13} className="text-zinc-600" />;
   };
 
-  const hasFilters = search || filterService !== "all" || filterIndustry !== "all" || filterSize !== "all";
+  const hasFilters = search || filterService !== "all" || filterIndustry !== "all" || filterSize !== "all" || filterTeaser;
 
   return (
-    <div className="min-h-screen bg-zinc-50" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
+    <div className="min-h-screen bg-zinc-100" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
       {/* Nav */}
       <header className="bg-white border-b border-zinc-100 h-14 flex items-center px-7">
         <div className="flex items-center gap-3 flex-1">
@@ -701,60 +1027,74 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
           <span className="text-zinc-200 text-xs">|</span>
           <span className="text-xs text-zinc-400 font-light">Pipeline Dashboard</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 border border-zinc-100 rounded-xl px-3 py-1.5 bg-zinc-50">
-            <div className="w-6 h-6 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-xs font-light">
-              {userEmail[0].toUpperCase()}
-            </div>
-            <span className="text-xs text-zinc-500 font-light max-w-36 truncate">{userEmail}</span>
+        <div className="flex items-center gap-2 border border-zinc-100 rounded-xl px-3 py-1.5 bg-zinc-50">
+          <div className="w-6 h-6 rounded-lg bg-[#215132] flex items-center justify-center text-white text-xs font-light">
+            {userEmail[0].toUpperCase()}
           </div>
-          <Button onClick={onLogout} variant="outline" size="sm" className="inline-flex items-center gap-2 h-8 rounded-xl font-light text-xs text-zinc-500 border border-zinc-200 hover:text-zinc-800 hover:bg-zinc-50 px-3 whitespace-nowrap">
-            <Ic name="logout" size={13} />
-            Sign out
-          </Button>
+          <span className="text-xs text-zinc-500 font-light max-w-36 truncate">{userEmail}</span>
         </div>
       </header>
 
-      <main className="max-w-screen-2xl mx-auto px-7 py-8">
+      <div className="flex">
+        {/* Sidebar */}
+        <aside className="w-24 shrink-0 bg-white border-r border-zinc-100 sticky top-14 h-[calc(100vh-3.5rem)] flex flex-col items-center py-5 gap-2">
+          <button
+            onClick={() => setView("dashboard")}
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${view === "dashboard" ? "bg-[#215132] text-white" : "hover:bg-zinc-50 text-zinc-400 hover:text-zinc-700"}`}
+            title="Dashboard"
+          >
+            <Ic name="chart" size={20} />
+          </button>
+
+          {isAdmin && (
+            <button
+              onClick={() => setView("settings")}
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${view === "settings" ? "bg-[#215132] text-white" : "hover:bg-zinc-50 text-zinc-400 hover:text-zinc-700"}`}
+              title="Settings"
+            >
+              <Ic name="settings" size={20} />
+            </button>
+          )}
+
+          <div className="flex-1" />
+
+          <button onClick={onLogout} className="w-12 h-12 rounded-2xl hover:bg-red-50 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors" title="Sign out">
+            <Ic name="logout" size={20} />
+          </button>
+        </aside>
+
+        <main className="flex-1 min-w-0 px-7 py-8">
+          {view === "settings" && isAdmin && (
+            <AdminPanel deals={deals} approvedEmails={approvedEmails} setApprovedEmails={setApprovedEmails} />
+          )}
+          {view === "settings" && !isAdmin && (
+            <div className="flex flex-col items-center justify-center py-32 text-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center">
+                <Ic name="lock" size={20} className="text-zinc-400" />
+              </div>
+              <p className="text-sm text-zinc-500 font-light">You don't have permission to view this page.</p>
+            </div>
+          )}
+          {view === "dashboard" && (<>
         {/* Page header */}
-        <div className={`mb-7 grid gap-5 ${isAdmin ? "lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)]" : ""}`}>
-          <div className="rounded-[28px] border border-zinc-100 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mb-7 grid gap-5">
+          <div className="rounded-[28px] border border-zinc-100 bg-white px-6 py-4 shadow-sm">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-zinc-400 font-semibold">Pipeline overview</p>
-                <h1 className="mt-3 text-3xl font-semibold text-zinc-900 tracking-tight">Deal pipeline dashboard</h1>
-                <p className="mt-3 text-sm text-zinc-500 leading-relaxed">A clearer view on active opportunities, deal readiness, and portfolio performance. Use filters to narrow focus and click any row to inspect details.</p>
+                <h1 className="mt-1.5 text-2xl font-semibold text-zinc-900 tracking-tight">Deal pipeline dashboard</h1>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="rounded-full bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 border border-emerald-100">Live updates</div>
+              <div className="flex items-center gap-2">
+                <div className="rounded-full bg-[#f5faeb] px-3 py-2 text-xs font-semibold text-[#42793A] border border-[#C3DB75] whitespace-nowrap">Live updates</div>
               </div>
-            </div>
-            <div className="mt-5 flex flex-wrap gap-3 text-xs font-medium text-zinc-500">
-              <span className="rounded-full bg-zinc-50 px-3 py-2">Total deals: {deals.length}</span>
-              <span className="rounded-full bg-zinc-50 px-3 py-2">Active: {byService.Funding + byService.Brokerage + byService.Consulting}</span>
-              <span className="rounded-full bg-zinc-50 px-3 py-2">Approved users: {approvedEmails.length}</span>
             </div>
             {(loading || error) && (
-              <div className={`mt-5 rounded-2xl border px-4 py-3 text-sm font-light ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+              <div className={`mt-3 rounded-2xl border px-4 py-3 text-sm font-light ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
                 {loading ? 'Loading dashboard data…' : error}
               </div>
             )}
           </div>
 
-          {isAdmin && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-[28px] border border-zinc-100 bg-white p-5 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.28em] text-zinc-400 font-semibold">Pipeline size</p>
-                <p className="mt-3 text-3xl font-semibold text-zinc-900">{fmtMoney(totalSize)}</p>
-                <p className="mt-2 text-sm text-zinc-500">Nominal value for the current view.</p>
-              </div>
-              <div className="rounded-[28px] border border-zinc-100 bg-white p-5 shadow-sm">
-                <p className="text-xs uppercase tracking-[0.28em] text-zinc-400 font-semibold">Teasers ready</p>
-                <p className="mt-3 text-3xl font-semibold text-zinc-900">{teaserCount}</p>
-                <p className="mt-2 text-sm text-zinc-500">PDF teasers available across filtered deals.</p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Filters */}
@@ -783,7 +1123,7 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
                   <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
                     {["all", "Funding", "Brokerage", "Consulting"].map(v => (
                       <button key={v} onClick={() => { setFilterService(v); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService === v ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                         {v === "all" ? "All services" : v}
                       </button>
                     ))}
@@ -807,12 +1147,12 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
                 {openDropdown === "industry" && (
                   <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1 max-h-72 overflow-y-auto">
                     <button onClick={() => { setFilterIndustry("all"); setOpenDropdown(null); }}
-                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === "all" ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === "all" ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                       All industries
                     </button>
                     {industries.map(v => (
                       <button key={v} onClick={() => { setFilterIndustry(v); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === v ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                         {v}
                       </button>
                     ))}
@@ -837,7 +1177,7 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
                   <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
                     {SIZE_RANGES.map(({ value, label }) => (
                       <button key={value} onClick={() => { setFilterSize(value); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize === value ? "bg-zinc-900 text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize === value ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                         {label}
                       </button>
                     ))}
@@ -845,8 +1185,15 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
                 )}
               </div>
 
+              <button
+                onClick={() => setFilterTeaser(v => !v)}
+                className={`h-11 px-4 rounded-2xl font-light text-xs flex items-center gap-2 transition-colors border ${filterTeaser ? "bg-[#215132] text-white border-[#215132]" : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:text-zinc-700"}`}>
+                <Ic name="document" size={14} />
+                Has teaser
+              </button>
+
               {hasFilters && (
-                <button onClick={() => { setSearch(""); setFilterService("all"); setFilterIndustry("all"); setFilterSize("all"); }} className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
+                <button onClick={() => { setSearch(""); setFilterService("all"); setFilterIndustry("all"); setFilterSize("all"); setFilterTeaser(false); }} className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
                   <Ic name="close" size={13} />
                   Clear filters
                 </button>
@@ -858,18 +1205,56 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
         {/* KPI Cards — driven by filtered set */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
           <KpiCard label="Deals shown" value={filtered.length} sub={`of ${deals.length} total in pipeline`} icon="briefcase" />
-          <KpiCard label="Portfolio size" value={fmtMoney(totalSize)} sub="Nominal value, filtered view" icon="money" />
-          <KpiCard label="By service" value={`${byService.Funding}F · ${byService.Brokerage}B · ${byService.Consulting}C`} sub="Funding · Brokerage · Consulting" icon="chart" />
-          <KpiCard label="Teasers uploaded" value={teaserCount} sub={`${filtered.length - teaserCount} pending in view`} icon="document" />
+          <KpiCard label="Pipeline size" value={fmtMoney(totalSize)} sub="Nominal value, filtered view" icon="money" />
+          <KpiCard label="Industries" value={industryCount} sub="Unique sectors in filtered view" icon="building" />
+          <KpiCard label={perms.canUpdate ? "Teasers uploaded" : "Teasers ready"} value={teaserCount} sub={`${filtered.length - teaserCount} pending in view`} icon="document" />
         </div>
 
         {/* Table */}
         <div className="bg-white border border-zinc-100 rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+              Deal Table
+            </p>
+            <div className="flex items-center gap-2">
+              {/* Export dropdown */}
+              <div className="relative">
+                {exportOpen && <div className="fixed inset-0 z-30" onClick={() => setExportOpen(false)} />}
+                <button
+                  onClick={() => setExportOpen(o => !o)}
+                  className="relative z-40 inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-zinc-200 bg-zinc-50 text-xs font-light text-zinc-600 hover:bg-zinc-100 transition-colors"
+                >
+                  <Ic name="document" size={13} />
+                  Export
+                  <Ic name="arrowDown" size={13} className="text-zinc-400" />
+                </button>
+                {exportOpen && (
+                  <div className="absolute right-0 top-11 z-50 w-44 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
+                    <button onClick={exportExcel} className="w-full text-left px-3 py-2.5 text-sm font-light rounded-xl text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
+                      <Ic name="document" size={14} className="text-[#42793A]" />
+                      Excel (.xlsx)
+                    </button>
+                    <button onClick={exportPDF} className="w-full text-left px-3 py-2.5 text-sm font-light rounded-xl text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
+                      <Ic name="pdf" size={14} className="text-red-500" />
+                      PDF (.pdf)
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {perms.canCreate && (
+                <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-4 text-xs whitespace-nowrap">
+                  <Ic name="plus" size={13} />
+                  New deal
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  {[["#","id",52],["Entity","entity",null],["Code name","codeName",140],["Service","service",110],["Industry","industry",200],["Nominal size","size",130],["EBITDA","ebitda",120],["Revenues","revenues",130],["Teaser",null,72]].map(([lbl, field, w]) => (
+                  {[["#",null,52],["Entity","entity",null],["Code name","codeName",140],["Service","service",110],["Industry","industry",200],["Nominal size","size",130],["EBITDA","ebitda",120],["Revenues","revenues",130],["Teaser",null,72]].map(([lbl, field, w]) => (
                     <th key={lbl} onClick={() => field && toggleSort(field)} style={w ? { width: w } : {}}
                       className={`px-4 py-3 text-left text-xs text-zinc-400 font-light tracking-wide ${field ? "cursor-pointer hover:text-zinc-600 select-none" : ""}`}>
                       <span className="flex items-center gap-1.5">
@@ -881,10 +1266,10 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(deal => (
+                {filtered.map((deal, idx) => (
                   <tr key={deal.id} onClick={() => setSelectedDeal(deal)}
                     className="border-b border-zinc-50 hover:bg-zinc-50 cursor-pointer transition-colors">
-                    <td className="px-4 py-3.5 text-xs text-zinc-300 font-light tabular-nums">{deal.id}</td>
+                    <td className="px-4 py-3.5 text-xs text-zinc-300 font-light tabular-nums">{idx + 1}</td>
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center text-xs text-zinc-500 font-light shrink-0">
@@ -903,7 +1288,7 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
                     <td className="px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums">{fmtMoney(deal.revenues)}</td>
                     <td className="px-4 py-3.5 text-center">
                       {teasers[deal.id]
-                        ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-50"><Ic name="document" size={14} className="text-emerald-600" /></span>
+                        ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#f5faeb]"><Ic name="document" size={14} className="text-[#42793A]" /></span>
                         : isAdmin
                           ? <button onClick={(e) => { e.stopPropagation(); setSelectedDeal(deal); }} className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-dashed border-zinc-300 text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"><Ic name="upload" size={13} /></button>
                           : <span className="text-zinc-200 text-xs font-light">—</span>}
@@ -927,10 +1312,12 @@ function Dashboard({ userEmail, isAdmin, onLogout }) {
             </table>
           </div>
         </div>
-      </main>
+          </>)}
+        </main>
+      </div>
 
-      {selectedDeal && <DealModal deal={selectedDeal} isAdmin={isAdmin} teasers={teasers} onUpload={handleUpload} onClose={() => setSelectedDeal(null)} onUpdate={handleUpdateDeal} industries={industries} />}
-      {showAdmin && <AdminPanel deals={deals} setDeals={setDeals} approvedEmails={approvedEmails} setApprovedEmails={setApprovedEmails} onClose={() => setShowAdmin(false)} industries={industries} />}
+      {selectedDeal && <DealModal deal={selectedDeal} perms={perms} teasers={teasers} onUpload={handleUpload} onRemoveTeaser={handleRemoveTeaser} onClose={() => setSelectedDeal(null)} onUpdate={handleUpdateDeal} onDelete={handleDeleteDeal} industries={industries} />}
+      {showAddDeal && <AddDealModal onClose={() => setShowAddDeal(false)} onAdd={deal => setDeals(prev => [deal, ...prev])} industries={industries} />}
     </div>
   );
 }
@@ -959,7 +1346,7 @@ export default function App() {
   return (
     <>
       {!user && <AuthScreen onLogin={login} />}
-      {user && <Dashboard userEmail={user.email} isAdmin={user.isAdmin} onLogout={logout} />}
+      {user && <Dashboard userEmail={user.email} userRole={user.role ?? (user.isAdmin ? "admin" : "viewer")} onLogout={logout} />}
       <Agentation />
     </>
   );

@@ -80,3 +80,47 @@ export async function deleteDeal(id) {
     return { success: false, error: err.message }
   }
 }
+
+export async function uploadTeaser(dealId, file) {
+  if (!supabase) return missingClientResponse()
+  try {
+    const path = `${dealId}/teaser.pdf`
+    const { error: uploadError } = await supabase.storage
+      .from('teasers')
+      .upload(path, file, { upsert: true, contentType: 'application/pdf' })
+    if (uploadError) throw uploadError
+    const { error: updateError } = await supabase
+      .from('deals')
+      .update({ teaser_path: path })
+      .eq('id', dealId)
+    if (updateError) throw updateError
+    return { success: true, path }
+  } catch (err) {
+    console.error('Error uploading teaser:', err)
+    return { success: false, error: err.message }
+  }
+}
+
+export function getTeaserPublicUrl(path) {
+  if (!supabase || !path) return null
+  return supabase.storage.from('teasers').getPublicUrl(path).data.publicUrl
+}
+
+export async function removeTeaser(dealId, path) {
+  if (!supabase) return { success: false, error: 'Supabase client not initialized.' }
+  try {
+    if (path) {
+      const { error: storageError } = await supabase.storage.from('teasers').remove([path])
+      if (storageError) throw storageError
+    }
+    const { error: updateError } = await supabase
+      .from('deals')
+      .update({ teaser_path: null })
+      .eq('id', dealId)
+    if (updateError) throw updateError
+    return { success: true }
+  } catch (err) {
+    console.error('Error removing teaser:', err)
+    return { success: false, error: err.message }
+  }
+}
