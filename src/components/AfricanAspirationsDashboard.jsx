@@ -144,8 +144,8 @@ function fmtMoney(n) {
 
 function fmtMoneyCompact(n) {
   if (!n) return "TBD";
-  if (n >= 1e9) return `$${Math.round(n / 1e9)}B`;
-  if (n >= 1e6) return `$${Math.round(n / 1e6)}M`;
+  if (n >= 1e9) return `$${(n / 1e9).toFixed(1)}B`;
+  if (n >= 1e6) return `$${(n / 1e6).toFixed(1)}M`;
   if (n >= 1e3) return `$${Math.round(n / 1e3)}K`;
   return `$${Math.round(n)}`;
 }
@@ -1148,25 +1148,16 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         </div>
 
         {/* Filters */}
-        <div className="bg-white border border-zinc-100 rounded-[28px] px-4 md:px-6 py-4 md:py-5 mb-5 shadow-sm">
-          <div className="flex gap-2">
+        <div className="bg-white border border-zinc-100 rounded-[28px] px-4 md:px-6 py-4 mb-5 shadow-sm">
+          {/* Single row on desktop: search + filters inline */}
+          <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Ic name="search" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
               <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search deals…" className="h-11 w-full pl-11 text-sm font-light border-zinc-200 rounded-2xl bg-zinc-50 focus:bg-white" />
             </div>
-            <button
-              onClick={() => setShowMobileFilters(v => !v)}
-              className="md:hidden relative h-11 w-11 shrink-0 flex items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
-            >
-              <Ic name="filter" size={16} />
-              {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#215132] text-white text-[9px] flex items-center justify-center font-medium">{activeFilterCount}</span>
-              )}
-            </button>
-          </div>
 
-          <div className={`${showMobileFilters ? "flex" : "hidden"} md:flex flex-col md:flex-row flex-wrap items-start md:items-center gap-2 mt-3`}>
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            {/* Desktop filters — inline */}
+            <div className="hidden md:flex items-center gap-2">
               {/* Service filter */}
               <div className="relative">
                 {openDropdown === "service" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
@@ -1260,7 +1251,88 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                 </button>
               )}
             </div>
+
+            {/* Mobile filter toggle */}
+            <button
+              onClick={() => setShowMobileFilters(v => !v)}
+              className="md:hidden relative h-11 w-11 shrink-0 flex items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+            >
+              <Ic name="filter" size={16} />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#215132] text-white text-[9px] flex items-center justify-center font-medium">{activeFilterCount}</span>
+              )}
+            </button>
           </div>
+
+          {/* Mobile filter panel */}
+          {showMobileFilters && (
+            <div className="md:hidden flex flex-col gap-2 mt-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  {openDropdown === "service-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
+                  <button onClick={() => setOpenDropdown(o => o === "service-m" ? null : "service-m")}
+                    className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
+                    <span className="flex items-center gap-2"><Ic name="tag" size={13} className="text-zinc-400" />{filterService === "all" ? "All services" : filterService}</span>
+                    <Ic name="arrowDown" size={13} className="text-zinc-400" />
+                  </button>
+                  {openDropdown === "service-m" && (
+                    <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
+                      {["all", "Funding", "Brokerage", "Consulting"].map(v => (
+                        <button key={v} onClick={() => { setFilterService(v); setOpenDropdown(null); }}
+                          className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                          {v === "all" ? "All services" : v}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  {openDropdown === "industry-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
+                  <button onClick={() => setOpenDropdown(o => o === "industry-m" ? null : "industry-m")}
+                    className="relative z-40 h-11 min-w-[140px] max-w-[220px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
+                    <span className="flex items-center gap-2 truncate"><Ic name="tag" size={13} className="text-zinc-400 shrink-0" /><span className="truncate">{filterIndustry === "all" ? "All industries" : filterIndustry}</span></span>
+                    <Ic name="arrowDown" size={13} className="text-zinc-400 shrink-0" />
+                  </button>
+                  {openDropdown === "industry-m" && (
+                    <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1 max-h-72 overflow-y-auto">
+                      <button onClick={() => { setFilterIndustry("all"); setOpenDropdown(null); }}
+                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === "all" ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>All industries</button>
+                      {industries.map(v => (
+                        <button key={v} onClick={() => { setFilterIndustry(v); setOpenDropdown(null); }}
+                          className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>{v}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  {openDropdown === "size-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
+                  <button onClick={() => setOpenDropdown(o => o === "size-m" ? null : "size-m")}
+                    className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
+                    <span className="flex items-center gap-2"><Ic name="money" size={13} className="text-zinc-400" />{SIZE_RANGES.find(r => r.value === filterSize)?.label ?? "All sizes"}</span>
+                    <Ic name="arrowDown" size={13} className="text-zinc-400" />
+                  </button>
+                  {openDropdown === "size-m" && (
+                    <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
+                      {SIZE_RANGES.map(({ value, label }) => (
+                        <button key={value} onClick={() => { setFilterSize(value); setOpenDropdown(null); }}
+                          className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize === value ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>{label}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button onClick={() => setFilterTeaser(v => !v)}
+                  className={`h-11 px-4 rounded-2xl font-light text-xs flex items-center gap-2 transition-colors border ${filterTeaser ? "bg-[#215132] text-white border-[#215132]" : "bg-white text-zinc-500 border-zinc-200"}`}>
+                  <Ic name="document" size={14} />Has teaser
+                </button>
+                {hasFilters && (
+                  <button onClick={() => { setSearch(""); setFilterService("all"); setFilterIndustry("all"); setFilterSize("all"); setFilterTeaser(false); setShowMobileFilters(false); }}
+                    className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
+                    <Ic name="close" size={13} />Clear filters
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* KPI Cards — driven by filtered set */}
