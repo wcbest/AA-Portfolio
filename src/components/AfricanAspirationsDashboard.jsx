@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+
+const Agentation = process.env.NODE_ENV === "development"
+  ? dynamic(() => import("agentation").then(m => ({ default: m.Agentation })), { ssr: false })
+  : () => null;
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Agentation } from "agentation";
 import {
   Add, ArrowDown2, ArrowUp2, Briefcase, Building, Chart, Chart2,
   CloseCircle, Document, DocumentText, DocumentUpload, Edit2, Eye, Filter,
@@ -138,6 +142,14 @@ function fmtMoney(n) {
   return `$${n.toLocaleString()}`;
 }
 
+function fmtMoneyCompact(n) {
+  if (!n) return "TBD";
+  if (n >= 1e9) return `$${Math.round(n / 1e9)}B`;
+  if (n >= 1e6) return `$${Math.round(n / 1e6)}M`;
+  if (n >= 1e3) return `$${Math.round(n / 1e3)}K`;
+  return `$${Math.round(n)}`;
+}
+
 const ROLE_META = {
   admin:  { label: "Admin",  badge: "bg-[#f5eef8] border-[#CFB6D7] text-[#7a4d8a]" },
   editor: { label: "Editor", badge: "bg-[#eef1fb] border-[#B2BEE1] text-[#3d5899]" },
@@ -155,6 +167,14 @@ function getPerms(role) {
 }
 
 const serviceBadge = { Funding: "bg-[#f5faeb] text-[#42793A] border-[#C3DB75]", Brokerage: "bg-[#f5eef8] text-[#7a4d8a] border-[#CFB6D7]", Consulting: "bg-[#fef6e8] text-[#a0620e] border-[#F4B858]" };
+
+function sizeRowBg(size) {
+  if (!size || size === 0) return "";                    // TBD — no tint
+  if (size >= 5e6)  return "bg-[#eef6ec]";             // $5M+      — light green
+  if (size >= 1e6)  return "bg-[#f6fbe9]";             // $1M–$5M   — light lime
+  if (size >= 1e5)  return "bg-[#eef2fb]";             // $100K–$1M — light blue
+  return "bg-[#fef8ed]";                               // <$100K    — light orange
+}
 
 const SIZE_RANGES = [
   { value: "all",    label: "All sizes" },
@@ -296,7 +316,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
   return (
     <Dialog open onOpenChange={onClose}>
       <div className="fixed inset-0 z-40 bg-black/25 backdrop-blur-sm" onClick={onClose} />
-      <DialogContent className="fixed inset-y-0 right-0 z-50 flex w-full max-w-3xl flex-col overflow-y-auto bg-white shadow-2xl" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
+      <DialogContent className="fixed inset-y-0 right-0 z-50 flex w-full md:max-w-3xl flex-col overflow-y-auto bg-white shadow-2xl" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
         <DialogHeader className="flex items-center justify-between px-7 pt-6 pb-0 border-b border-zinc-200">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
@@ -705,7 +725,7 @@ function AddDealModal({ onClose, onAdd, industries = [] }) {
   return (
     <Dialog open onOpenChange={onClose}>
       <div className="fixed inset-0 z-40 bg-black/25 backdrop-blur-sm" onClick={onClose} />
-      <DialogContent className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col overflow-y-auto bg-white shadow-2xl" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
+      <DialogContent className="fixed inset-y-0 right-0 z-50 flex w-full md:max-w-xl flex-col overflow-y-auto bg-white shadow-2xl" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
         <DialogHeader className="flex items-center justify-between px-7 pt-6 pb-5 border-b border-zinc-100">
           <DialogTitle className="text-base font-semibold text-zinc-900">New deal</DialogTitle>
           <div className="flex items-center gap-2">
@@ -772,6 +792,7 @@ const KPI_ICONS = {
   money:     <Money size={20} variant="Outline" />,
   chart:     <Chart size={20} variant="Outline" />,
   document:  <Document size={20} variant="Outline" />,
+  globe:     <Global size={20} variant="Outline" />,
 };
 
 // ─── KPI Card ─────────────────────────────────
@@ -780,11 +801,11 @@ function KpiCard({ label, value, sub, icon }) {
     <div className="bg-[#42793A] rounded-[28px] p-5 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase tracking-[0.22em] text-[#C3DB75] font-semibold mb-2">{label}</p>
-          <p className="text-3xl font-medium text-white tracking-tight tabular-nums truncate">{value}</p>
-          <p className="text-xs text-[#a8d880] font-light mt-2 leading-snug">{sub}</p>
+          <p className="text-xs uppercase tracking-[0.06em] text-[#C3DB75] font-semibold mb-2 line-clamp-1">{label}</p>
+          <p className="text-3xl font-medium text-white tracking-tight tabular-nums">{value}</p>
+          <p className="text-xs text-[#a8d880] font-light mt-2 leading-snug line-clamp-1">{sub}</p>
         </div>
-        <div className="ml-auto flex h-11 w-11 items-center justify-center rounded-2xl bg-[#336030] text-[#C3DB75]">
+        <div className="ml-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-[#336030] text-white shrink-0">
           {KPI_ICONS[icon] ?? <Briefcase size={20} variant="Outline" />}
         </div>
       </div>
@@ -811,6 +832,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [sortField, setSortField] = useState("id");
   const [sortDir, setSortDir] = useState("asc");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -1017,6 +1039,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   };
 
   const hasFilters = search || filterService !== "all" || filterIndustry !== "all" || filterSize !== "all" || filterTeaser;
+  const activeFilterCount = [filterService !== "all", filterIndustry !== "all", filterSize !== "all", filterTeaser].filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-zinc-100" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
@@ -1024,20 +1047,20 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
       <header className="bg-white border-b border-zinc-100 h-14 flex items-center px-7">
         <div className="flex items-center gap-3 flex-1">
           <img src="/logo.svg" alt="African Aspirations" className="h-9 w-auto" />
-          <span className="text-zinc-200 text-xs">|</span>
-          <span className="text-xs text-zinc-400 font-light">Pipeline Dashboard</span>
+          <span className="hidden sm:inline text-zinc-200 text-xs">|</span>
+          <span className="hidden sm:inline text-xs text-zinc-400 font-light">Pipeline Dashboard</span>
         </div>
         <div className="flex items-center gap-2 border border-zinc-100 rounded-xl px-3 py-1.5 bg-zinc-50">
-          <div className="w-6 h-6 rounded-lg bg-[#215132] flex items-center justify-center text-white text-xs font-light">
+          <div className="w-6 h-6 rounded-lg bg-[#215132] flex items-center justify-center text-white text-xs font-light shrink-0">
             {userEmail[0].toUpperCase()}
           </div>
-          <span className="text-xs text-zinc-500 font-light max-w-36 truncate">{userEmail}</span>
+          <span className="hidden sm:inline text-xs text-zinc-500 font-light max-w-36 truncate">{userEmail}</span>
         </div>
       </header>
 
       <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-24 shrink-0 bg-white border-r border-zinc-100 sticky top-14 h-[calc(100vh-3.5rem)] flex flex-col items-center py-5 gap-2">
+        {/* Sidebar — desktop only */}
+        <aside className="hidden md:flex w-24 shrink-0 bg-white border-r border-zinc-100 sticky top-14 h-[calc(100vh-3.5rem)] flex-col items-center py-5 gap-2">
           <button
             onClick={() => setView("dashboard")}
             className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${view === "dashboard" ? "bg-[#215132] text-white" : "hover:bg-zinc-50 text-zinc-400 hover:text-zinc-700"}`}
@@ -1063,7 +1086,34 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
           </button>
         </aside>
 
-        <main className="flex-1 min-w-0 px-7 py-8">
+        {/* Bottom nav — mobile only */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-zinc-100 flex items-center justify-around h-16 px-4">
+          <button
+            onClick={() => setView("dashboard")}
+            className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors ${view === "dashboard" ? "text-[#215132]" : "text-zinc-400"}`}
+          >
+            <Ic name="chart" size={22} />
+            <span className="text-[10px] font-light">Dashboard</span>
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setView("settings")}
+              className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors ${view === "settings" ? "text-[#215132]" : "text-zinc-400"}`}
+            >
+              <Ic name="settings" size={22} />
+              <span className="text-[10px] font-light">Settings</span>
+            </button>
+          )}
+          <button
+            onClick={onLogout}
+            className="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-zinc-400 hover:text-red-500 transition-colors"
+          >
+            <Ic name="logout" size={22} />
+            <span className="text-[10px] font-light">Sign out</span>
+          </button>
+        </nav>
+
+        <main className="flex-1 min-w-0 px-4 py-5 pb-24 md:px-7 md:py-8 md:pb-8">
           {view === "settings" && isAdmin && (
             <AdminPanel deals={deals} approvedEmails={approvedEmails} setApprovedEmails={setApprovedEmails} />
           )}
@@ -1076,8 +1126,8 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
             </div>
           )}
           {view === "dashboard" && (<>
-        {/* Page header */}
-        <div className="mb-7 grid gap-5">
+        {/* Page header — desktop only */}
+        <div className="hidden md:grid mb-7 gap-5">
           <div className="rounded-[28px] border border-zinc-100 bg-white px-6 py-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -1098,14 +1148,25 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         </div>
 
         {/* Filters */}
-        <div className="bg-white border border-zinc-100 rounded-[28px] px-6 py-5 mb-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-3">
-            <div className="relative w-1/2 min-w-[240px]">
+        <div className="bg-white border border-zinc-100 rounded-[28px] px-4 md:px-6 py-4 md:py-5 mb-5 shadow-sm">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
               <Ic name="search" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search entity, code name or sector" className="h-11 w-full pl-11 text-sm font-light border-zinc-200 rounded-2xl bg-zinc-50 focus:bg-white" />
+              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search deals…" className="h-11 w-full pl-11 text-sm font-light border-zinc-200 rounded-2xl bg-zinc-50 focus:bg-white" />
             </div>
+            <button
+              onClick={() => setShowMobileFilters(v => !v)}
+              className="md:hidden relative h-11 w-11 shrink-0 flex items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+            >
+              <Ic name="filter" size={16} />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#215132] text-white text-[9px] flex items-center justify-center font-medium">{activeFilterCount}</span>
+              )}
+            </button>
+          </div>
 
-            <div className="flex items-center gap-3">
+          <div className={`${showMobileFilters ? "flex" : "hidden"} md:flex flex-col md:flex-row flex-wrap items-start md:items-center gap-2 mt-3`}>
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
               {/* Service filter */}
               <div className="relative">
                 {openDropdown === "service" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
@@ -1193,7 +1254,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
               </button>
 
               {hasFilters && (
-                <button onClick={() => { setSearch(""); setFilterService("all"); setFilterIndustry("all"); setFilterSize("all"); setFilterTeaser(false); }} className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
+                <button onClick={() => { setSearch(""); setFilterService("all"); setFilterIndustry("all"); setFilterSize("all"); setFilterTeaser(false); setShowMobileFilters(false); }} className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
                   <Ic name="close" size={13} />
                   Clear filters
                 </button>
@@ -1203,16 +1264,59 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         </div>
 
         {/* KPI Cards — driven by filtered set */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 mb-5">
           <KpiCard label="Deals shown" value={filtered.length} sub={`of ${deals.length} total in pipeline`} icon="briefcase" />
-          <KpiCard label="Pipeline size" value={fmtMoney(totalSize)} sub="Nominal value, filtered view" icon="money" />
-          <KpiCard label="Industries" value={industryCount} sub="Unique sectors in filtered view" icon="building" />
+          <KpiCard label="Pipeline size" value={fmtMoneyCompact(totalSize)} sub="Nominal value, filtered view" icon="money" />
+          <KpiCard label="Industries" value={industryCount} sub="Unique sectors in filtered view" icon="globe" />
           <KpiCard label={perms.canUpdate ? "Teasers uploaded" : "Teasers ready"} value={teaserCount} sub={`${filtered.length - teaserCount} pending in view`} icon="document" />
         </div>
 
-        {/* Table */}
-        <div className="bg-white border border-zinc-100 rounded-2xl overflow-hidden">
+        {/* Mobile deal cards */}
+        <div className="md:hidden bg-white border border-zinc-100 rounded-2xl overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
+            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Deals <span className="text-zinc-300">· {filtered.length}</span></p>
+            {perms.canCreate && (
+              <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-4 text-xs whitespace-nowrap">
+                <Ic name="plus" size={13} />
+                New deal
+              </Button>
+            )}
+          </div>
+          <div className="divide-y divide-zinc-50">
+            {filtered.map((deal) => (
+              <button key={deal.id} onClick={() => setSelectedDeal(deal)}
+                className="w-full text-left px-5 py-4 flex items-center gap-3 active:bg-zinc-50 transition-colors">
+                <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-sm text-zinc-500 font-light shrink-0">
+                  {deal.entity.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="text-sm text-zinc-800 font-light truncate">{deal.entity}</span>
+                    {teasers[deal.id] && <Ic name="document" size={13} className="text-[#42793A] shrink-0" />}
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-light ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
+                    {deal.industry && <span className="text-xs text-zinc-400 font-light truncate">{deal.industry}</span>}
+                    {deal.size && <span className="text-xs text-zinc-500 font-light tabular-nums ml-auto">{fmtMoney(deal.size)}</span>}
+                  </div>
+                </div>
+                <Ic name="arrowDown" size={15} className="text-zinc-300 -rotate-90 shrink-0 ml-1" />
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="py-16 flex flex-col items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center">
+                  <Ic name="search" size={18} className="text-zinc-400" />
+                </div>
+                <p className="text-sm text-zinc-400 font-light">No deals match your filters</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Table — desktop only */}
+        <div className="hidden md:block bg-white border border-zinc-100 rounded-2xl overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-zinc-100">
             <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
               Deal Table
             </p>
@@ -1270,22 +1374,22 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                   <tr key={deal.id} onClick={() => setSelectedDeal(deal)}
                     className="border-b border-zinc-50 hover:bg-zinc-50 cursor-pointer transition-colors">
                     <td className="px-4 py-3.5 text-xs text-zinc-300 font-light tabular-nums">{idx + 1}</td>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-3">
+                    <td className="px-4 py-3.5 max-w-0">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center text-xs text-zinc-500 font-light shrink-0">
                           {deal.entity.charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-zinc-800 font-light text-sm leading-tight">{deal.entity}</span>
+                        <span className="text-zinc-800 font-light text-sm leading-tight truncate">{deal.entity}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-zinc-400 font-light">{deal.codeName}</td>
-                    <td className="px-4 py-3.5">
+                    <td className="px-4 py-3.5 text-xs text-zinc-400 font-light whitespace-nowrap">{deal.codeName}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
                       <span className={`text-xs px-2.5 py-0.5 rounded-full border font-light ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
                     </td>
                     <td className="px-4 py-3.5 text-xs text-zinc-500 font-light max-w-[200px] truncate">{deal.industry}</td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums">{fmtMoney(deal.size)}</td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums">{fmtMoney(deal.ebitda)}</td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums">{fmtMoney(deal.revenues)}</td>
+                    <td className={`px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums whitespace-nowrap ${sizeRowBg(deal.size)}`}>{fmtMoney(deal.size)}</td>
+                    <td className="px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums whitespace-nowrap">{fmtMoney(deal.ebitda)}</td>
+                    <td className="px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums whitespace-nowrap">{fmtMoney(deal.revenues)}</td>
                     <td className="px-4 py-3.5 text-center">
                       {teasers[deal.id]
                         ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#f5faeb]"><Ic name="document" size={14} className="text-[#42793A]" /></span>
@@ -1311,6 +1415,22 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Size range legend */}
+        <div className="hidden md:flex items-center gap-4 mt-3 px-1 flex-wrap">
+          {[
+            { label: "$5M+",        bg: "bg-[#eef6ec]" },
+            { label: "$1M – $5M",   bg: "bg-[#f6fbe9]" },
+            { label: "$100K – $1M", bg: "bg-[#eef2fb]" },
+            { label: "< $100K",     bg: "bg-[#fef8ed]" },
+            { label: "TBD",         bg: "bg-white border border-zinc-200" },
+          ].map(({ label, bg }) => (
+            <span key={label} className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-light">
+              <span className={`inline-block w-3 h-3 rounded-sm ${bg}`} />
+              {label}
+            </span>
+          ))}
         </div>
           </>)}
         </main>

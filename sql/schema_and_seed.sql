@@ -11,7 +11,7 @@ create table if not exists public.approved_emails (
 
 -- Create deals table
 create table if not exists public.deals (
-  id bigint primary key,
+  id bigserial primary key,
   entity text not null,
   code_name text,
   category text,
