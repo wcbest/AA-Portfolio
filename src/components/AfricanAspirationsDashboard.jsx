@@ -290,6 +290,32 @@ function AuthScreen({ onLogin }) {
   );
 }
 
+// ─── Teaser Viewer ───────────────────────────
+function TeaserViewer({ url, dealName, onClose }) {
+  useEffect(() => {
+    function onKey(e) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/95">
+      <div className="flex items-center justify-between px-6 py-4 bg-zinc-900 shrink-0">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-light">Deal Teaser</p>
+          <h2 className="text-sm font-medium text-white mt-0.5 truncate max-w-[600px]">{dealName}</h2>
+        </div>
+        <button onClick={onClose} className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors">
+          <CloseCircle size={18} variant="Outline" />
+        </button>
+      </div>
+      <div className="flex-1 min-h-0 p-4">
+        <iframe src={url} className="w-full h-full rounded-xl border border-zinc-800" title="Deal Teaser" />
+      </div>
+    </div>
+  );
+}
+
 // ─── Deal Modal ───────────────────────────────
 function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClose, onUpdate, onDelete, industries = [] }) {
   const [editing, setEditing] = useState(false);
@@ -320,10 +346,10 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
         <DialogHeader className="flex items-center justify-between px-7 pt-6 pb-0 border-b border-zinc-200">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <span className={`text-xs px-2.5 py-0.5 rounded-full border font-light ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
             </div>
             <DialogTitle className="text-lg font-semibold text-zinc-900">{deal.entity}</DialogTitle>
-            <p className="text-sm text-zinc-400 font-light">{deal.codeName}</p>
+            <p className="text-sm text-zinc-600">{deal.codeName}</p>
           </div>
           <div className="flex items-center gap-2">
             {confirmDelete ? (
@@ -368,17 +394,17 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
               <div className="grid grid-cols-2 gap-x-5 gap-y-5">
                 {/* Entity name — full width */}
                 <div className="col-span-2">
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">Entity name</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Entity name</p>
                   <Input value={form.entity || ""} onChange={e => setForm(p => ({ ...p, entity: e.target.value }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50" />
                 </div>
                 {/* Code name */}
                 <div>
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">Code name</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Code name</p>
                   <Input value={form.codeName || ""} onChange={e => setForm(p => ({ ...p, codeName: e.target.value }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50" />
                 </div>
                 {/* Service */}
                 <div>
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">Service</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Service</p>
                   <select
                     value={form.service || "Funding"}
                     onChange={e => setForm(p => ({ ...p, service: e.target.value }))}
@@ -389,7 +415,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                 </div>
                 {/* Industry — full width dropdown */}
                 <div className="col-span-2">
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">Industry</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Industry</p>
                   <select
                     value={form.industry || ""}
                     onChange={e => setForm(p => ({ ...p, industry: e.target.value }))}
@@ -401,20 +427,20 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                 </div>
                 {/* Numeric fields */}
                 <div>
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">Nominal size (USD)</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Nominal size (USD)</p>
                   <Input value={form.size || ""} onChange={e => setForm(p => ({ ...p, size: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">EBITDA (USD)</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">EBITDA (USD)</p>
                   <Input value={form.ebitda || ""} onChange={e => setForm(p => ({ ...p, ebitda: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">Revenues (USD)</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Revenues (USD)</p>
                   <Input value={form.revenues || ""} onChange={e => setForm(p => ({ ...p, revenues: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
                 </div>
                 {/* About — full width textarea */}
                 <div className="col-span-2">
-                  <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2">About entity</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">About entity</p>
                   <textarea
                     value={form.about || ""}
                     onChange={e => setForm(p => ({ ...p, about: e.target.value }))}
@@ -429,15 +455,15 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
               <div className="grid grid-cols-3 gap-3">
                 {[["Deal ID", `#${deal.id}`],["Nominal size", fmtMoney(deal.size)],["Service", deal.service],["EBITDA", fmtMoney(deal.ebitda)],["Revenues", fmtMoney(deal.revenues)],["Industry", deal.industry || "—"]].map(([lbl, val]) => (
                   <div key={lbl} className="bg-zinc-50 rounded-xl p-4">
-                    <p className="text-xs text-zinc-400 font-light mb-1">{lbl}</p>
-                    <p className="text-sm text-zinc-800 font-light leading-snug">{val}</p>
+                    <p className="text-xs text-zinc-500 font-medium mb-1">{lbl}</p>
+                    <p className="text-sm text-zinc-900 leading-snug">{val}</p>
                   </div>
                 ))}
               </div>
               {deal.about && (
                 <div className="bg-zinc-50 rounded-xl p-4">
-                  <p className="text-xs text-zinc-400 font-light mb-1">About</p>
-                  <p className="text-sm text-zinc-800 font-light leading-relaxed">{deal.about}</p>
+                  <p className="text-xs text-zinc-500 font-medium mb-1">About</p>
+                  <p className="text-sm text-zinc-800 leading-relaxed">{deal.about}</p>
                 </div>
               )}
             </div>
@@ -448,7 +474,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
         <div className="px-7 pb-7">
           <div className="flex items-center gap-2 mb-3">
             <Ic name="pdf" size={13} className="text-zinc-400" />
-            <span className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Deal Teaser</span>
+            <span className="text-xs font-semibold text-zinc-600 uppercase tracking-wide">Deal Teaser</span>
           </div>
           {teaser ? (
             <div className="space-y-3">
@@ -707,7 +733,7 @@ function AddDealModal({ onClose, onAdd, industries = [] }) {
   const [error, setError] = useState("");
 
   const fieldClass = "w-full bg-zinc-50 px-4 h-10 border border-zinc-200 rounded-xl text-sm font-light text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900";
-  const labelClass = "text-[11px] font-semibold text-zinc-400 uppercase tracking-widest mb-2 block";
+  const labelClass = "text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2 block";
 
   async function handleSave() {
     if (!form.entity.trim()) { setError("Entity name is required."); return; }
@@ -833,6 +859,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   const [sortField, setSortField] = useState("id");
   const [sortDir, setSortDir] = useState("asc");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [teaserView, setTeaserView] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -1032,7 +1059,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   }
 
   const SortIcon = ({ field }) => {
-    if (sortField !== field) return <Ic name="sortAsc" size={13} className="text-zinc-300" />;
+    if (sortField !== field) return <Ic name="sortAsc" size={13} className="text-zinc-400" />;
     return sortDir === "asc"
       ? <Ic name="arrowUp" size={13} className="text-zinc-600" />
       : <Ic name="arrowDown" size={13} className="text-zinc-600" />;
@@ -1044,17 +1071,32 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   return (
     <div className="min-h-screen bg-zinc-100" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
       {/* Nav */}
-      <header className="bg-white border-b border-zinc-100 h-14 flex items-center px-7">
+      <header className="bg-white border-b border-zinc-100 h-16 flex items-center px-7">
+        <div className="max-w-[1800px] mx-auto w-full flex items-center">
         <div className="flex items-center gap-3 flex-1">
-          <img src="/logo.svg" alt="African Aspirations" className="h-9 w-auto" />
-          <span className="hidden sm:inline text-zinc-200 text-xs">|</span>
-          <span className="hidden sm:inline text-xs text-zinc-400 font-light">Pipeline Dashboard</span>
+          <img src="/logo.svg" alt="African Aspirations" className="h-10 w-auto shrink-0" />
+          <span className="hidden sm:inline text-zinc-200 text-xs shrink-0">|</span>
+          <h1 className="hidden sm:block text-lg font-semibold text-zinc-900 tracking-tight">Deal pipeline overview</h1>
         </div>
-        <div className="flex items-center gap-2 border border-zinc-100 rounded-xl px-3 py-1.5 bg-zinc-50">
-          <div className="w-6 h-6 rounded-lg bg-[#215132] flex items-center justify-center text-white text-xs font-light shrink-0">
-            {userEmail[0].toUpperCase()}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-200 whitespace-nowrap">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            Live
           </div>
-          <span className="hidden sm:inline text-xs text-zinc-500 font-light max-w-36 truncate">{userEmail}</span>
+          <div className="flex items-center gap-2 border border-zinc-100 rounded-xl px-3 py-1.5 bg-zinc-50">
+            <div className="w-6 h-6 rounded-lg bg-[#215132] flex items-center justify-center text-white text-xs font-light shrink-0">
+              {userEmail[0].toUpperCase()}
+            </div>
+            <span className="hidden sm:inline text-xs text-zinc-500 font-light">{userEmail}</span>
+          </div>
+          <button onClick={onLogout} className="hidden sm:flex items-center gap-1.5 rounded-xl px-3 h-9 hover:bg-red-50 text-zinc-400 hover:text-red-500 transition-colors text-xs font-medium" title="Sign out">
+            <Ic name="logout" size={16} />
+            Sign out
+          </button>
+        </div>
         </div>
       </header>
 
@@ -1069,6 +1111,8 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
             <Ic name="chart" size={20} />
           </button>
 
+          <div className="flex-1" />
+
           {isAdmin && (
             <button
               onClick={() => setView("settings")}
@@ -1078,12 +1122,6 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
               <Ic name="settings" size={20} />
             </button>
           )}
-
-          <div className="flex-1" />
-
-          <button onClick={onLogout} className="w-12 h-12 rounded-2xl hover:bg-red-50 flex items-center justify-center text-zinc-400 hover:text-red-500 transition-colors" title="Sign out">
-            <Ic name="logout" size={20} />
-          </button>
         </aside>
 
         {/* Bottom nav — mobile only */}
@@ -1114,6 +1152,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         </nav>
 
         <main className="flex-1 min-w-0 px-4 py-5 pb-24 md:px-7 md:py-8 md:pb-8">
+          <div className="max-w-[1800px] mx-auto">
           {view === "settings" && isAdmin && (
             <AdminPanel deals={deals} approvedEmails={approvedEmails} setApprovedEmails={setApprovedEmails} />
           )}
@@ -1126,26 +1165,11 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
             </div>
           )}
           {view === "dashboard" && (<>
-        {/* Page header — desktop only */}
-        <div className="hidden md:grid mb-7 gap-5">
-          <div className="rounded-[28px] border border-zinc-100 bg-white px-6 py-4 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.28em] text-zinc-400 font-semibold">Pipeline overview</p>
-                <h1 className="mt-1.5 text-2xl font-semibold text-zinc-900 tracking-tight">Deal pipeline dashboard</h1>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="rounded-full bg-[#f5faeb] px-3 py-2 text-xs font-semibold text-[#42793A] border border-[#C3DB75] whitespace-nowrap">Live updates</div>
-              </div>
-            </div>
-            {(loading || error) && (
-              <div className={`mt-3 rounded-2xl border px-4 py-3 text-sm font-light ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
-                {loading ? 'Loading dashboard data…' : error}
-              </div>
-            )}
+        {(loading || error) && (
+          <div className={`mb-5 rounded-2xl border px-4 py-3 text-sm font-light ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+            {loading ? 'Loading dashboard data…' : error}
           </div>
-
-        </div>
+        )}
 
         {/* Filters */}
         <div className="bg-white border border-zinc-100 rounded-[28px] px-4 md:px-6 py-4 mb-5 shadow-sm">
@@ -1163,7 +1187,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                 {openDropdown === "service" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                 <button
                   onClick={() => setOpenDropdown(o => o === "service" ? null : "service")}
-                  className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700 hover:bg-zinc-100 transition-colors"
+                  className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm text-zinc-800 hover:bg-zinc-100 transition-colors"
                 >
                   <span className="flex items-center gap-2">
                     <Ic name="tag" size={13} className="text-zinc-400" />
@@ -1188,7 +1212,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                 {openDropdown === "industry" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                 <button
                   onClick={() => setOpenDropdown(o => o === "industry" ? null : "industry")}
-                  className="relative z-40 h-11 min-w-[140px] max-w-[220px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700 hover:bg-zinc-100 transition-colors"
+                  className="relative z-40 h-11 min-w-[140px] max-w-[220px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm text-zinc-800 hover:bg-zinc-100 transition-colors"
                 >
                   <span className="flex items-center gap-2 truncate">
                     <Ic name="tag" size={13} className="text-zinc-400 shrink-0" />
@@ -1217,7 +1241,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                 {openDropdown === "size" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                 <button
                   onClick={() => setOpenDropdown(o => o === "size" ? null : "size")}
-                  className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700 hover:bg-zinc-100 transition-colors"
+                  className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm text-zinc-800 hover:bg-zinc-100 transition-colors"
                 >
                   <span className="flex items-center gap-2">
                     <Ic name="money" size={13} className="text-zinc-400" />
@@ -1346,7 +1370,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         {/* Mobile deal cards */}
         <div className="md:hidden bg-white border border-zinc-100 rounded-2xl overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">Deals <span className="text-zinc-300">· {filtered.length}</span></p>
+            <p className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Deals <span className="text-zinc-400">· {filtered.length}</span></p>
             {perms.canCreate && (
               <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-4 text-xs whitespace-nowrap">
                 <Ic name="plus" size={13} />
@@ -1358,21 +1382,21 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
             {filtered.map((deal) => (
               <button key={deal.id} onClick={() => setSelectedDeal(deal)}
                 className="w-full text-left px-5 py-4 flex items-center gap-3 active:bg-zinc-50 transition-colors">
-                <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-sm text-zinc-500 font-light shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-sm text-zinc-600 font-medium shrink-0">
                   {deal.entity.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="text-sm text-zinc-800 font-light truncate">{deal.entity}</span>
+                    <span className="text-sm text-zinc-900 font-medium truncate">{deal.entity}</span>
                     {teasers[deal.id] && <Ic name="document" size={13} className="text-[#42793A] shrink-0" />}
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-light ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
-                    {deal.industry && <span className="text-xs text-zinc-400 font-light truncate">{deal.industry}</span>}
-                    {deal.size && <span className="text-xs text-zinc-500 font-light tabular-nums ml-auto">{fmtMoney(deal.size)}</span>}
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
+                    {deal.industry && <span className="text-xs text-zinc-600 truncate">{deal.industry}</span>}
+                    {deal.size && <span className="text-xs text-zinc-700 tabular-nums ml-auto">{fmtMoney(deal.size)}</span>}
                   </div>
                 </div>
-                <Ic name="arrowDown" size={15} className="text-zinc-300 -rotate-90 shrink-0 ml-1" />
+                <Ic name="arrowDown" size={15} className="text-zinc-400 -rotate-90 shrink-0 ml-1" />
               </button>
             ))}
             {filtered.length === 0 && (
@@ -1389,7 +1413,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         {/* Table — desktop only */}
         <div className="hidden md:block bg-white border border-zinc-100 rounded-2xl overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-zinc-100">
-            <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest">
+            <p className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">
               Deal Table
             </p>
             <div className="flex items-center gap-2">
@@ -1430,9 +1454,9 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-100">
-                  {[["#",null,52],["Entity","entity",null],["Code name","codeName",140],["Service","service",110],["Industry","industry",200],["Nominal size","size",130],["EBITDA","ebitda",120],["Revenues","revenues",130],["Teaser",null,72]].map(([lbl, field, w]) => (
-                    <th key={lbl} onClick={() => field && toggleSort(field)} style={w ? { width: w } : {}}
-                      className={`px-4 py-3 text-left text-xs text-zinc-400 font-light tracking-wide ${field ? "cursor-pointer hover:text-zinc-600 select-none" : ""}`}>
+                  {[["#",null,52,null],["Entity","entity",null,null],["Code name","codeName",140,null],["Service","service",110,null],["Industry","industry",null,null],["Nominal size","size",200,null],["EBITDA","ebitda",180,null],["Revenues","revenues",200,null]].map(([lbl, field, w, mw]) => (
+                    <th key={lbl} onClick={() => field && toggleSort(field)} style={{ ...(w ? { width: w } : {}), ...(mw ? { maxWidth: mw } : {}) }}
+                      className={`px-4 py-3 text-left text-xs text-zinc-500 font-medium tracking-wide ${field ? "cursor-pointer hover:text-zinc-800 select-none" : ""}`}>
                       <span className="flex items-center gap-1.5">
                         {lbl}
                         {field && <SortIcon field={field} />}
@@ -1445,35 +1469,39 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                 {filtered.map((deal, idx) => (
                   <tr key={deal.id} onClick={() => setSelectedDeal(deal)}
                     className="border-b border-zinc-50 hover:bg-zinc-50 cursor-pointer transition-colors">
-                    <td className="px-4 py-3.5 text-xs text-zinc-300 font-light tabular-nums">{idx + 1}</td>
-                    <td className="px-4 py-3.5 max-w-0">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center text-xs text-zinc-500 font-light shrink-0">
+                    <td className="px-4 py-3.5 text-xs text-zinc-400 tabular-nums">{idx + 1}</td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center text-xs text-zinc-600 font-medium shrink-0">
                           {deal.entity.charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-zinc-800 font-light text-sm leading-tight truncate">{deal.entity}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-900 font-medium text-sm leading-tight">{deal.entity}</span>
+                          {teasers[deal.id] && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setTeaserView({ url: teasers[deal.id].url, dealName: deal.entity }); }}
+                              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-6 rounded-lg bg-[#f5faeb] text-[#42793A] hover:bg-[#42793A] hover:text-white transition-colors text-[11px] font-medium whitespace-nowrap"
+                            >
+                              See teaser
+                              <Ic name="arrowDown" size={11} className="-rotate-90" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-zinc-400 font-light whitespace-nowrap">{deal.codeName}</td>
+                    <td className="px-4 py-3.5 text-sm text-zinc-600 whitespace-nowrap">{deal.codeName}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className={`text-xs px-2.5 py-0.5 rounded-full border font-light ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
+                      <span className={`text-sm px-2.5 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-zinc-500 font-light max-w-[200px] truncate">{deal.industry}</td>
-                    <td className={`px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums whitespace-nowrap ${sizeRowBg(deal.size)}`}>{fmtMoney(deal.size)}</td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums whitespace-nowrap">{fmtMoney(deal.ebitda)}</td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-800 font-light tabular-nums whitespace-nowrap">{fmtMoney(deal.revenues)}</td>
-                    <td className="px-4 py-3.5 text-center">
-                      {teasers[deal.id]
-                        ? <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-[#f5faeb]"><Ic name="document" size={14} className="text-[#42793A]" /></span>
-                        : isAdmin
-                          ? <button onClick={(e) => { e.stopPropagation(); setSelectedDeal(deal); }} className="inline-flex items-center justify-center w-7 h-7 rounded-lg border border-dashed border-zinc-300 text-zinc-400 hover:border-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"><Ic name="upload" size={13} /></button>
-                          : <span className="text-zinc-200 text-xs font-light">—</span>}
-                    </td>
+                    <td className="px-4 py-3.5 text-sm text-zinc-700 whitespace-nowrap">{deal.industry}</td>
+                    <td className={`px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap ${sizeRowBg(deal.size)}`}>{fmtMoney(deal.size)}</td>
+                    <td className="px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap">{fmtMoney(deal.ebitda)}</td>
+                    <td className="px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap">{fmtMoney(deal.revenues)}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="py-20 text-center">
+                    <td colSpan={8} className="py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center">
                           <Ic name="search" size={18} className="text-zinc-400" />
@@ -1505,11 +1533,13 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
           ))}
         </div>
           </>)}
+          </div>
         </main>
       </div>
 
       {selectedDeal && <DealModal deal={selectedDeal} perms={perms} teasers={teasers} onUpload={handleUpload} onRemoveTeaser={handleRemoveTeaser} onClose={() => setSelectedDeal(null)} onUpdate={handleUpdateDeal} onDelete={handleDeleteDeal} industries={industries} />}
       {showAddDeal && <AddDealModal onClose={() => setShowAddDeal(false)} onAdd={deal => setDeals(prev => [deal, ...prev])} industries={industries} />}
+      {teaserView && <TeaserViewer url={teaserView.url} dealName={teaserView.dealName} onClose={() => setTeaserView(null)} />}
     </div>
   );
 }
