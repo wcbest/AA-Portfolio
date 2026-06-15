@@ -78,56 +78,56 @@ const Ic = ({ name, size = 18, className = "", variant = "Outline" }) => {
 
 // ─── Data ────────────────────────────────────
 const SEED_DEALS = [
-  { id: 1,  entity: "Manet",                                   codeName: "Merchant",    service: "Brokerage",  about: "Commercial and residential real estate brokerage and development firm",           industry: "Real Estate & Property Development",          size: 30000000, ebitda: 4107271,  revenues: 27909992 },
-  { id: 2,  entity: "Mava Consulting",                         codeName: "Map",         service: "Funding",    about: "Business consulting firm specializing in healthcare sector advisory",            industry: "Healthcare & Life Sciences",                  size: 21000000, ebitda: 7714437,  revenues: 47877150 },
-  { id: 3,  entity: "Equity Savings and Loans",                codeName: "Equestrian",  service: "Consulting", about: "Microfinance institution providing savings and loan services",                   industry: "Financial Services",                          size: 20000000, ebitda: 9546227,  revenues: 40920819 },
-  { id: 4,  entity: "Harriben Granite Ltd",                    codeName: "Happy",       service: "Consulting", about: "Granite quarrying and stone extraction company",                                industry: "Mining & Natural Resources",                  size: 10000000, ebitda: 8094359,  revenues: 5386930  },
-  { id: 5,  entity: "Velvet",                                  codeName: "Velvet",      service: "Brokerage",  about: "Hospitality company operating restaurants and food service venues",              industry: "Hospitality, Food & Beverage",                size: 7920000,  ebitda: 9592917,  revenues: 7360734  },
-  { id: 6,  entity: "D'Avenue",                                codeName: "Dominion",    service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 6200000,  ebitda: 3176388,  revenues: 28502106 },
-  { id: 7,  entity: "Ahafo Pride LTD",                         codeName: "Ahab",        service: "Funding",    about: "Business enterprise providing specialized services",                            industry: "Agriculture, AgriTech & Agro-Processing",     size: 5000000,  ebitda: 7975253,  revenues: 26929529 },
-  { id: 8,  entity: "Tans Hostel",                             codeName: "Tulip",       service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 5000000,  ebitda: 651175,   revenues: 43306410 },
-  { id: 9,  entity: "Royal Palm City",                         codeName: "Palm",        service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Real Estate & Property Development",          size: 5000000,  ebitda: 1359688,  revenues: 7278516  },
-  { id: 10, entity: "Ederick - Emerge",                        codeName: "Emerge",      service: "Brokerage",  about: "Commercial enterprise in the trade, manufacturing & consumer goods sector",     industry: "Trade, Manufacturing & Consumer Goods",       size: 5000000,  ebitda: 5667461,  revenues: 10591081 },
-  { id: 11, entity: "Merbarproperties",                        codeName: "Marble",      service: "Funding",    about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 4500000,  ebitda: 9765265,  revenues: 28007062 },
-  { id: 12, entity: "Le Pavillon",                             codeName: "French",      service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 4000000,  ebitda: 9570612,  revenues: 18680199 },
-  { id: 13, entity: "CHARLESTON Hotel",                        codeName: "Yellow",      service: "Brokerage",  about: "Hospitality business in lodging and food services",                             industry: "Hospitality, Food & Beverage",                size: 4000000,  ebitda: 4152251,  revenues: 24201376 },
-  { id: 14, entity: "Kazkazini",                               codeName: "KANDA",       service: "Brokerage",  about: "Commercial enterprise in the agriculture, agritech & agro-processing sector",   industry: "Agriculture, AgriTech & Agro-Processing",     size: 3720000,  ebitda: 8446037,  revenues: 6323864  },
-  { id: 15, entity: "Modern Properties - Land Sale",           codeName: "Modern",      service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 3000000,  ebitda: 705863,   revenues: 23487196 },
-  { id: 16, entity: "ESBEE",                                   codeName: "Bee",         service: "Brokerage",  about: "Commercial enterprise in the trade, manufacturing & consumer goods sector",     industry: "Trade, Manufacturing & Consumer Goods",       size: 3000000,  ebitda: 2174933,  revenues: 46145971 },
-  { id: 17, entity: "ULTIMATE HOTEL",                          codeName: "United",      service: "Brokerage",  about: "Hospitality business in lodging and food services",                             industry: "Hospitality, Food & Beverage",                size: 2500000,  ebitda: 9482275,  revenues: 49221043 },
-  { id: 18, entity: "Onlime Africa Limited",                   codeName: "SL",          service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Financial Services",                          size: 2250000,  ebitda: 5285850,  revenues: 39129632 },
-  { id: 19, entity: "Colonel Takye",                           codeName: "MULTI",       service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 2200000,  ebitda: 3156455,  revenues: 48307156 },
-  { id: 20, entity: "Dan's Paradise Hotel",                    codeName: "Pond",        service: "Brokerage",  about: "Hospitality business in lodging and food services",                             industry: "Hospitality, Food & Beverage",                size: 2000000,  ebitda: 9652860,  revenues: 28225945 },
-  { id: 21, entity: "Office Complex",                          codeName: "Happy II",    service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 1800000,  ebitda: 5624926,  revenues: 29134918 },
-  { id: 22, entity: "Indulge",                                 codeName: "Instagram",   service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 1700000,  ebitda: 1111035,  revenues: 4545727  },
-  { id: 23, entity: "Kings Palace School",                     codeName: "KINGS",       service: "Brokerage",  about: "Educational institution providing learning services",                           industry: "Education & Human Capital",                   size: 1200000,  ebitda: 5364225,  revenues: 4095861  },
-  { id: 24, entity: "Tilly's Farm",                            codeName: "Tiles",       service: "Funding",    about: "Agricultural and food production enterprise",                                   industry: "Agriculture, AgriTech & Agro-Processing",     size: 1000000,  ebitda: 8567650,  revenues: 28112885 },
-  { id: 25, entity: "Marvello Gastro Lounge",                  codeName: "Marvel",      service: "Brokerage",  about: "Energy sector company in fuel distribution and services",                       industry: "Hospitality, Food & Beverage",                size: 1000000,  ebitda: 5209940,  revenues: 6982671  },
-  { id: 26, entity: "Scenic Restaurant",                       codeName: "Starz",       service: "Brokerage",  about: "Hospitality business in lodging and food services",                             industry: "Hospitality, Food & Beverage",                size: 876000,   ebitda: 1877507,  revenues: 22578381 },
-  { id: 27, entity: "Enart Farms and Consult",                 codeName: "Moon",        service: "Brokerage",  about: "Agricultural and food production enterprise",                                   industry: "Agriculture, AgriTech & Agro-Processing",     size: 860000,   ebitda: 666312,   revenues: 36111719 },
-  { id: 28, entity: "DF Poultry",                              codeName: "Pot",         service: "Brokerage",  about: "Commercial enterprise in the agriculture, agritech & agro-processing sector",   industry: "Agriculture, AgriTech & Agro-Processing",     size: 700000,   ebitda: 2885916,  revenues: 29640618 },
-  { id: 29, entity: "Magdavis Catering Services",              codeName: "Carter",      service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 500000,   ebitda: 3642128,  revenues: 16552068 },
-  { id: 30, entity: "Lot30 Bistro & Bar",                      codeName: "Barn",        service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 374000,   ebitda: 9042679,  revenues: 16632491 },
-  { id: 31, entity: "AgriOne Africa",                          codeName: "Agric",       service: "Funding",    about: "Agricultural and food production enterprise",                                   industry: "Agriculture, AgriTech & Agro-Processing",     size: 350000,   ebitda: 1742474,  revenues: 6196942  },
-  { id: 32, entity: "Agnes Bakery",                            codeName: "Sweet",       service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Hospitality, Food & Beverage",                size: 250000,   ebitda: 4530482,  revenues: 11934763 },
-  { id: 33, entity: "Eldora Royal Farms",                      codeName: "Crown",       service: "Brokerage",  about: "Agricultural and food production enterprise",                                   industry: "Agriculture, AgriTech & Agro-Processing",     size: 233000,   ebitda: 4257717,  revenues: 6961787  },
-  { id: 34, entity: "Theresa",                                 codeName: "Atlas",       service: "Funding",    about: "Commercial enterprise in the energy, oil & gas sector",                        industry: "Energy, Oil & Gas",                           size: 200000,   ebitda: 9843200,  revenues: 22197419 },
-  { id: 35, entity: "AH Nissi Company Ltd",                    codeName: "Nice",        service: "Brokerage",  about: "Business enterprise providing specialized services",                            industry: "Real Estate & Property Development",          size: 192000,   ebitda: 4426732,  revenues: 40476873 },
-  { id: 36, entity: "Land - Kuorkor Dzani",                    codeName: "Kooks",       service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 160000,   ebitda: 7508072,  revenues: 13752487 },
-  { id: 37, entity: "Apartment (Solaris) - Kuorkor Dzani",     codeName: "Sol",         service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 160000,   ebitda: 6450924,  revenues: 31497761 },
-  { id: 38, entity: "UFO BURGER",                              codeName: "Space",       service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 100000,   ebitda: 5253840,  revenues: 5722339  },
-  { id: 39, entity: "Land",                                    codeName: "Earth",       service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 76000,    ebitda: 3667953,  revenues: 46754711 },
-  { id: 40, entity: "Poultry Tech",                            codeName: "Projet PT",   service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Agriculture, AgriTech & Agro-Processing",     size: 70000,    ebitda: 6913544,  revenues: 15792247 },
-  { id: 41, entity: "Oya Ghana",                               codeName: "Oak",         service: "Funding",    about: "Commercial enterprise in the technology & mobility sector",                     industry: "Technology & Mobility",                       size: 70000,    ebitda: 5365161,  revenues: 32920424 },
-  { id: 42, entity: "GreenGold",                               codeName: "Green",       service: "Brokerage",  about: "Commercial enterprise in the agriculture, agritech & agro-processing sector",   industry: "Agriculture, AgriTech & Agro-Processing",     size: 40000,    ebitda: 5399347,  revenues: 27210723 },
-  { id: 43, entity: "Best Life Clinic",                        codeName: "Bold",        service: "Consulting", about: "Healthcare facility providing medical and diagnostic services",                  industry: "Healthcare & Life Sciences",                  size: 30000,    ebitda: 9916886,  revenues: 17010143 },
-  { id: 44, entity: "World-beater Security Services",          codeName: "Wife",        service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Business Services & Investment",              size: 0,        ebitda: 745153,   revenues: 21443214 },
-  { id: 45, entity: "Land Sale - Yaw Owusu Ansah",             codeName: "Answer",      service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 0,        ebitda: 4304637,  revenues: 19349458 },
-  { id: 46, entity: "Land with Uncompleted Building - Grace Asare", codeName: "Good",  service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Real Estate & Property Development",          size: 0,        ebitda: 7248927,  revenues: 40884186 },
-  { id: 47, entity: "Central Oil Mills Ltd",                   codeName: "Center",      service: "Brokerage",  about: "Oil processing and production company",                                         industry: "Energy, Oil & Gas",                           size: 0,        ebitda: 3538097,  revenues: 20734538 },
-  { id: 48, entity: "Cups and Cones",                          codeName: "Cane",        service: "Brokerage",  about: "Food and beverage retail business",                                             industry: "Hospitality, Food & Beverage",                size: 0,        ebitda: 6427456,  revenues: 38751777 },
-  { id: 49, entity: "Innovare",                                codeName: "Inn",         service: "Funding",    about: "Information technology systems and software solutions provider",                 industry: "Technology & Digital Services",               size: 0,        ebitda: 4630761,  revenues: 9729308  },
-  { id: 50, entity: "Danpong Hospital",                        codeName: "Dan",         service: "Consulting", about: "Medical facility providing healthcare services",                                 industry: "Healthcare & Life Sciences",                  size: 0,        ebitda: 317882,   revenues: 42229385 },
+  { id: 1,  entity: "Manet",                                   codeName: "Project Merchant",    service: "Brokerage",  about: "Commercial and residential real estate brokerage and development firm",           industry: "Real Estate & Property Development",          size: 30000000, ebitda: 4107271,  revenues: 27909992 },
+  { id: 2,  entity: "Mava Consulting",                         codeName: "Project Map",         service: "Funding",    about: "Business consulting firm specializing in healthcare sector advisory",            industry: "Healthcare & Life Sciences",                  size: 21000000, ebitda: 7714437,  revenues: 47877150 },
+  { id: 3,  entity: "Equity Savings and Loans",                codeName: "Project Equestrian",  service: "Consulting", about: "Microfinance institution providing savings and loan services",                   industry: "Financial Services",                          size: 20000000, ebitda: 9546227,  revenues: 40920819 },
+  { id: 4,  entity: "Harriben Granite Ltd",                    codeName: "Project Happy",       service: "Consulting", about: "Granite quarrying and stone extraction company",                                industry: "Mining & Natural Resources",                  size: 10000000, ebitda: 8094359,  revenues: 5386930  },
+  { id: 5,  entity: "Velvet",                                  codeName: "Project Velvet",      service: "Brokerage",  about: "Hospitality company operating restaurants and food service venues",              industry: "Hospitality, Food & Beverage",                size: 7920000,  ebitda: 9592917,  revenues: 7360734  },
+  { id: 6,  entity: "D'Avenue",                                codeName: "Project Dominion",    service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 6200000,  ebitda: 3176388,  revenues: 28502106 },
+  { id: 7,  entity: "Ahafo Pride LTD",                         codeName: "Project Ahab",        service: "Funding",    about: "Business enterprise providing specialized services",                            industry: "Agriculture, AgriTech & Agro-Processing",     size: 5000000,  ebitda: 7975253,  revenues: 26929529 },
+  { id: 8,  entity: "Tans Hostel",                             codeName: "Project Tulip",       service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 5000000,  ebitda: 651175,   revenues: 43306410 },
+  { id: 9,  entity: "Royal Palm City",                         codeName: "Project Palm",        service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Real Estate & Property Development",          size: 5000000,  ebitda: 1359688,  revenues: 7278516  },
+  { id: 10, entity: "Ederick - Emerge",                        codeName: "Project Emerge",      service: "Brokerage",  about: "Commercial enterprise in the trade, manufacturing & consumer goods sector",     industry: "Trade, Manufacturing & Consumer Goods",       size: 5000000,  ebitda: 5667461,  revenues: 10591081 },
+  { id: 11, entity: "Merbarproperties",                        codeName: "Project Marble",      service: "Funding",    about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 4500000,  ebitda: 9765265,  revenues: 28007062 },
+  { id: 12, entity: "Le Pavillon",                             codeName: "Project French",      service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 4000000,  ebitda: 9570612,  revenues: 18680199 },
+  { id: 13, entity: "CHARLESTON Hotel",                        codeName: "Project Yellow",      service: "Brokerage",  about: "Hospitality business in lodging and food services",                             industry: "Hospitality, Food & Beverage",                size: 4000000,  ebitda: 4152251,  revenues: 24201376 },
+  { id: 14, entity: "Kazkazini",                               codeName: "Project KANDA",       service: "Brokerage",  about: "Commercial enterprise in the agriculture, agritech & agro-processing sector",   industry: "Agriculture, AgriTech & Agro-Processing",     size: 3720000,  ebitda: 8446037,  revenues: 6323864  },
+  { id: 15, entity: "Modern Properties - Land Sale",           codeName: "Project Modern",      service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 3000000,  ebitda: 705863,   revenues: 23487196 },
+  { id: 16, entity: "ESBEE",                                   codeName: "Project Bee",         service: "Brokerage",  about: "Commercial enterprise in the trade, manufacturing & consumer goods sector",     industry: "Trade, Manufacturing & Consumer Goods",       size: 3000000,  ebitda: 2174933,  revenues: 46145971 },
+  { id: 17, entity: "ULTIMATE HOTEL",                          codeName: "Project United",      service: "Brokerage",  about: "Hospitality business in lodging and food services",                             industry: "Hospitality, Food & Beverage",                size: 2500000,  ebitda: 9482275,  revenues: 49221043 },
+  { id: 18, entity: "Onlime Africa Limited",                   codeName: "Project SL",          service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Financial Services",                          size: 2250000,  ebitda: 5285850,  revenues: 39129632 },
+  { id: 19, entity: "Colonel Takye",                           codeName: "Project MULTI",       service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 2200000,  ebitda: 3156455,  revenues: 48307156 },
+  { id: 20, entity: "Dan's Paradise Hotel",                    codeName: "Project Pond",        service: "Brokerage",  about: "Hospitality business in lodging and food services",                             industry: "Hospitality, Food & Beverage",                size: 2000000,  ebitda: 9652860,  revenues: 28225945 },
+  { id: 21, entity: "Office Complex",                          codeName: "Project Happy II",    service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 1800000,  ebitda: 5624926,  revenues: 29134918 },
+  { id: 22, entity: "Indulge",                                 codeName: "Project Instagram",   service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 1700000,  ebitda: 1111035,  revenues: 4545727  },
+  { id: 23, entity: "Kings Palace School",                     codeName: "Project KINGS",       service: "Brokerage",  about: "Educational institution providing learning services",                           industry: "Education & Human Capital",                   size: 1200000,  ebitda: 5364225,  revenues: 4095861  },
+  { id: 24, entity: "Tilly's Farm",                            codeName: "Project Tiles",       service: "Funding",    about: "Agricultural and food production enterprise",                                   industry: "Agriculture, AgriTech & Agro-Processing",     size: 1000000,  ebitda: 8567650,  revenues: 28112885 },
+  { id: 25, entity: "Marvello Gastro Lounge",                  codeName: "Project Marvel",      service: "Brokerage",  about: "Energy sector company in fuel distribution and services",                       industry: "Hospitality, Food & Beverage",                size: 1000000,  ebitda: 5209940,  revenues: 6982671  },
+  { id: 26, entity: "Scenic Restaurant",                       codeName: "Project Starz",       service: "Brokerage",  about: "Hospitality business in lodging and food services",                             industry: "Hospitality, Food & Beverage",                size: 876000,   ebitda: 1877507,  revenues: 22578381 },
+  { id: 27, entity: "Enart Farms and Consult",                 codeName: "Project Moon",        service: "Brokerage",  about: "Agricultural and food production enterprise",                                   industry: "Agriculture, AgriTech & Agro-Processing",     size: 860000,   ebitda: 666312,   revenues: 36111719 },
+  { id: 28, entity: "DF Poultry",                              codeName: "Project Pot",         service: "Brokerage",  about: "Commercial enterprise in the agriculture, agritech & agro-processing sector",   industry: "Agriculture, AgriTech & Agro-Processing",     size: 700000,   ebitda: 2885916,  revenues: 29640618 },
+  { id: 29, entity: "Magdavis Catering Services",              codeName: "Project Carter",      service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 500000,   ebitda: 3642128,  revenues: 16552068 },
+  { id: 30, entity: "Lot30 Bistro & Bar",                      codeName: "Project Barn",        service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 374000,   ebitda: 9042679,  revenues: 16632491 },
+  { id: 31, entity: "AgriOne Africa",                          codeName: "Project Agric",       service: "Funding",    about: "Agricultural and food production enterprise",                                   industry: "Agriculture, AgriTech & Agro-Processing",     size: 350000,   ebitda: 1742474,  revenues: 6196942  },
+  { id: 32, entity: "Agnes Bakery",                            codeName: "Project Sweet",       service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Hospitality, Food & Beverage",                size: 250000,   ebitda: 4530482,  revenues: 11934763 },
+  { id: 33, entity: "Eldora Royal Farms",                      codeName: "Project Crown",       service: "Brokerage",  about: "Agricultural and food production enterprise",                                   industry: "Agriculture, AgriTech & Agro-Processing",     size: 233000,   ebitda: 4257717,  revenues: 6961787  },
+  { id: 34, entity: "Theresa",                                 codeName: "Project Atlas",       service: "Funding",    about: "Commercial enterprise in the energy, oil & gas sector",                        industry: "Energy, Oil & Gas",                           size: 200000,   ebitda: 9843200,  revenues: 22197419 },
+  { id: 35, entity: "AH Nissi Company Ltd",                    codeName: "Project Nice",        service: "Brokerage",  about: "Business enterprise providing specialized services",                            industry: "Real Estate & Property Development",          size: 192000,   ebitda: 4426732,  revenues: 40476873 },
+  { id: 36, entity: "Land - Kuorkor Dzani",                    codeName: "Project Kooks",       service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 160000,   ebitda: 7508072,  revenues: 13752487 },
+  { id: 37, entity: "Apartment (Solaris) - Kuorkor Dzani",     codeName: "Project Sol",         service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 160000,   ebitda: 6450924,  revenues: 31497761 },
+  { id: 38, entity: "UFO BURGER",                              codeName: "Project Space",       service: "Brokerage",  about: "Commercial enterprise operating in the hospitality, food & beverage sector",    industry: "Hospitality, Food & Beverage",                size: 100000,   ebitda: 5253840,  revenues: 5722339  },
+  { id: 39, entity: "Land",                                    codeName: "Project Earth",       service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 76000,    ebitda: 3667953,  revenues: 46754711 },
+  { id: 40, entity: "Poultry Tech",                            codeName: "Project PT",          service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Agriculture, AgriTech & Agro-Processing",     size: 70000,    ebitda: 6913544,  revenues: 15792247 },
+  { id: 41, entity: "Oya Ghana",                               codeName: "Project Oak",         service: "Funding",    about: "Commercial enterprise in the technology & mobility sector",                     industry: "Technology & Mobility",                       size: 70000,    ebitda: 5365161,  revenues: 32920424 },
+  { id: 42, entity: "GreenGold",                               codeName: "Project Green",       service: "Brokerage",  about: "Commercial enterprise in the agriculture, agritech & agro-processing sector",   industry: "Agriculture, AgriTech & Agro-Processing",     size: 40000,    ebitda: 5399347,  revenues: 27210723 },
+  { id: 43, entity: "Best Life Clinic",                        codeName: "Project Bold",        service: "Consulting", about: "Healthcare facility providing medical and diagnostic services",                  industry: "Healthcare & Life Sciences",                  size: 30000,    ebitda: 9916886,  revenues: 17010143 },
+  { id: 44, entity: "World-beater Security Services",          codeName: "Project Wife",        service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Business Services & Investment",              size: 0,        ebitda: 745153,   revenues: 21443214 },
+  { id: 45, entity: "Land Sale - Yaw Owusu Ansah",             codeName: "Project Answer",      service: "Brokerage",  about: "Commercial enterprise in the real estate & property development sector",        industry: "Real Estate & Property Development",          size: 0,        ebitda: 4304637,  revenues: 19349458 },
+  { id: 46, entity: "Land with Uncompleted Building - Grace Asare", codeName: "Project Good",  service: "Brokerage",  about: "Technology company providing digital solutions and services",                    industry: "Real Estate & Property Development",          size: 0,        ebitda: 7248927,  revenues: 40884186 },
+  { id: 47, entity: "Central Oil Mills Ltd",                   codeName: "Project Center",      service: "Brokerage",  about: "Oil processing and production company",                                         industry: "Energy, Oil & Gas",                           size: 0,        ebitda: 3538097,  revenues: 20734538 },
+  { id: 48, entity: "Cups and Cones",                          codeName: "Project Cane",        service: "Brokerage",  about: "Food and beverage retail business",                                             industry: "Hospitality, Food & Beverage",                size: 0,        ebitda: 6427456,  revenues: 38751777 },
+  { id: 49, entity: "Innovare",                                codeName: "Project Inn",         service: "Funding",    about: "Information technology systems and software solutions provider",                 industry: "Technology & Digital Services",               size: 0,        ebitda: 4630761,  revenues: 9729308  },
+  { id: 50, entity: "Danpong Hospital",                        codeName: "Project Dan",         service: "Consulting", about: "Medical facility providing healthcare services",                                 industry: "Healthcare & Life Sciences",                  size: 0,        ebitda: 317882,   revenues: 42229385 },
 ];
 
 const APPROVED_EMAILS = ["admin@africanaspirations.com", "demo@africanaspirations.com", "investor@africanaspirations.com"];
@@ -300,13 +300,14 @@ function TeaserViewer({ url, dealName, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black/95">
-      <div className="flex items-center justify-between px-6 py-4 bg-zinc-900 shrink-0">
+      <div className="flex items-center justify-between px-8 py-5 bg-zinc-950 border-b border-zinc-800 shrink-0">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-light">Deal Teaser</p>
-          <h2 className="text-sm font-medium text-white mt-0.5 truncate max-w-[600px]">{dealName}</h2>
+          <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-semibold">Deal Teaser</p>
+          <h2 className="text-base font-semibold text-white mt-0.5 truncate max-w-[700px]">{dealName}</h2>
         </div>
-        <button onClick={onClose} className="flex items-center justify-center w-9 h-9 rounded-xl bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors">
-          <CloseCircle size={18} variant="Outline" />
+        <button onClick={onClose} className="flex items-center gap-2 px-4 h-10 rounded-xl bg-red-600 text-white hover:bg-red-500 transition-colors text-sm font-semibold">
+          <Ic name="arrowDown" size={16} className="rotate-90" />
+          Go back
         </button>
       </div>
       <div className="flex-1 min-h-0 p-4">
@@ -415,19 +416,19 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                 </div>
                 {/* Industry — full width dropdown */}
                 <div className="col-span-2">
-                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Industry</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Sector</p>
                   <select
                     value={form.industry || ""}
                     onChange={e => setForm(p => ({ ...p, industry: e.target.value }))}
                     className="w-full h-10 px-4 text-sm font-light border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900"
                   >
-                    <option value="">Select industry…</option>
+                    <option value="">Select sector…</option>
                     {industries.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
                 {/* Numeric fields */}
                 <div>
-                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Nominal size (USD)</p>
+                  <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Asking price (USD)</p>
                   <Input value={form.size || ""} onChange={e => setForm(p => ({ ...p, size: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
                 </div>
                 <div>
@@ -453,7 +454,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-3">
-                {[["Deal ID", `#${deal.id}`],["Nominal size", fmtMoney(deal.size)],["Service", deal.service],["EBITDA", fmtMoney(deal.ebitda)],["Revenues", fmtMoney(deal.revenues)],["Industry", deal.industry || "—"]].map(([lbl, val]) => (
+                {[["Deal ID", `#${deal.id}`],["Asking Price", fmtMoney(deal.size)],["Service", deal.service],["EBITDA", fmtMoney(deal.ebitda)],["Revenues", fmtMoney(deal.revenues)],["Sector", deal.industry || "—"]].map(([lbl, val]) => (
                   <div key={lbl} className="bg-zinc-50 rounded-xl p-4">
                     <p className="text-xs text-zinc-500 font-medium mb-1">{lbl}</p>
                     <p className="text-sm text-zinc-900 leading-snug">{val}</p>
@@ -784,14 +785,14 @@ function AddDealModal({ onClose, onAdd, industries = [] }) {
               </select>
             </div>
             <div className="col-span-2">
-              <label className={labelClass}>Industry</label>
+              <label className={labelClass}>Sector</label>
               <select value={form.industry} onChange={e => setForm(p => ({ ...p, industry: e.target.value }))} className={fieldClass + " appearance-none"}>
-                <option value="">Select industry…</option>
+                <option value="">Select sector…</option>
                 {industries.map(v => <option key={v} value={v}>{v}</option>)}
               </select>
             </div>
             <div>
-              <label className={labelClass}>Nominal size (USD)</label>
+              <label className={labelClass}>Asking price (USD)</label>
               <input type="number" value={form.size} onChange={e => setForm(p => ({ ...p, size: e.target.value }))} className={fieldClass} />
             </div>
             <div>
@@ -936,79 +937,127 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   }
 
   function exportExcel() {
-    const rows = filtered.map((d, i) => ({
-      "#": i + 1,
-      "Entity": d.entity,
-      "Code Name": d.codeName,
-      "Service": d.service,
-      "Industry": d.industry || "—",
-      "Nominal Size (USD)": d.size || 0,
-      "EBITDA (USD)": d.ebitda ?? "",
-      "Revenues (USD)": d.revenues ?? "",
-      "Has Teaser": teasers[d.id] ? "Yes" : "No",
-    }));
+    const rows = filtered.map((d, i) => {
+      const row = { "#": i + 1, "Code Name": d.codeName };
+      if (isAdmin) row["Entity"] = d.entity;
+      row["Sector"] = d.industry || "—";
+      row["Service"] = d.service;
+      row["Asking Price (USD)"] = d.size || 0;
+      row["Revenues (USD)"] = d.revenues ?? "";
+      row["EBITDA (USD)"] = d.ebitda ?? "";
+      return row;
+    });
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws["!cols"] = [4, 28, 18, 14, 22, 20, 16, 16, 12].map(w => ({ wch: w }));
+    const colWidths = isAdmin
+      ? [4, 22, 28, 30, 16, 20, 18, 18]
+      : [4, 22, 30, 16, 20, 18, 18];
+    ws["!cols"] = colWidths.map(w => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Deal Pipeline");
     XLSX.writeFile(wb, `african-aspirations-deals-${new Date().toISOString().slice(0,10)}.xlsx`);
     setExportOpen(false);
   }
 
-  function exportPDF() {
+  async function exportPDF() {
+    // Load logo for header + watermark
+    let logoHeader = null;
+    let logoWatermark = null;
+    try {
+      const resp = await fetch('/logo.svg');
+      const svgText = await resp.text();
+      const blob = new Blob([svgText], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      await new Promise(res => {
+        const img = new Image();
+        img.onload = () => {
+          const W = 600, H = img.naturalHeight > 0 ? Math.round(W * img.naturalHeight / img.naturalWidth) : 200;
+          const hCanvas = document.createElement('canvas');
+          hCanvas.width = W; hCanvas.height = H;
+          hCanvas.getContext('2d').drawImage(img, 0, 0, W, H);
+          logoHeader = hCanvas.toDataURL('image/png');
+          const wCanvas = document.createElement('canvas');
+          wCanvas.width = W; wCanvas.height = H;
+          const wCtx = wCanvas.getContext('2d');
+          wCtx.globalAlpha = 0.06;
+          wCtx.drawImage(img, 0, 0, W, H);
+          logoWatermark = wCanvas.toDataURL('image/png');
+          URL.revokeObjectURL(url);
+          res();
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); res(); };
+        img.src = url;
+      });
+    } catch (e) { /* fail silently */ }
+
     const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
     const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.setTextColor(24, 24, 27);
-    doc.text("African Aspirations", 14, 18);
+    const head = isAdmin
+      ? [["#", "Code Name", "Entity", "Sector", "Service", "Asking Price", "Revenues", "EBITDA"]]
+      : [["#", "Code Name", "Sector", "Service", "Asking Price", "Revenues", "EBITDA"]];
 
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(113, 113, 122);
-    doc.text("Deal Pipeline Report", 14, 25);
-    doc.text(`Generated: ${date}`, 14, 31);
-    doc.text(`Showing ${filtered.length} of ${deals.length} deals`, 14, 37);
-
-    autoTable(doc, {
-      startY: 44,
-      head: [["#", "Entity", "Code Name", "Service", "Industry", "Nominal Size", "EBITDA", "Revenues", "Teaser"]],
-      body: filtered.map((d, i) => [
-        i + 1,
-        d.entity,
-        d.codeName || "—",
-        d.service,
+    const body = filtered.map((d, i) => {
+      const row = [i + 1, d.codeName || "—"];
+      if (isAdmin) row.push(d.entity);
+      row.push(
         d.industry || "—",
+        d.service,
         d.size ? `$${Number(d.size).toLocaleString()}` : "TBD",
-        d.ebitda ? `$${Number(d.ebitda).toLocaleString()}` : "—",
         d.revenues ? `$${Number(d.revenues).toLocaleString()}` : "—",
-        teasers[d.id] ? "Yes" : "No",
-      ]),
-      styles: { font: "helvetica", fontSize: 8, cellPadding: 3, textColor: [24, 24, 27] },
-      headStyles: { fillColor: [24, 24, 27], textColor: 255, fontStyle: "bold", fontSize: 8 },
-      alternateRowStyles: { fillColor: [250, 250, 250] },
-      columnStyles: {
-        0: { cellWidth: 8 },
-        1: { cellWidth: 45 },
-        2: { cellWidth: 30 },
-        3: { cellWidth: 22 },
-        4: { cellWidth: 35 },
-        5: { cellWidth: 25 },
-        6: { cellWidth: 22 },
-        7: { cellWidth: 22 },
-        8: { cellWidth: 14 },
-      },
-      margin: { left: 14, right: 14 },
+        d.ebitda ? `$${Number(d.ebitda).toLocaleString()}` : "—",
+      );
+      return row;
     });
 
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(161, 161, 170);
-      doc.text(`Page ${i} of ${pageCount} — Confidential`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 8, { align: "center" });
-    }
+    const colStyles = isAdmin
+      ? { 0: { cellWidth: 8 }, 1: { cellWidth: 38 }, 2: { cellWidth: 38 }, 3: { cellWidth: 42 }, 4: { cellWidth: 22 }, 5: { cellWidth: 28 }, 6: { cellWidth: 26 }, 7: { cellWidth: 26 } }
+      : { 0: { cellWidth: 8 }, 1: { cellWidth: 48 }, 2: { cellWidth: 52 }, 3: { cellWidth: 26 }, 4: { cellWidth: 30 }, 5: { cellWidth: 28 }, 6: { cellWidth: 28 } };
+
+    const drawPageChrome = () => {
+      // Faded logo watermark (drawn first so it sits behind everything)
+      if (logoWatermark) {
+        const wmW = 140, wmH = wmW * 0.35;
+        doc.addImage(logoWatermark, 'PNG', (pageW - wmW) / 2, (pageH - wmH) / 2, wmW, wmH);
+      }
+      // Dark green header bar
+      doc.setFillColor(33, 81, 50);
+      doc.rect(0, 0, pageW, 26, 'F');
+      // Lime accent line
+      doc.setFillColor(195, 219, 117);
+      doc.rect(0, 26, pageW, 1.2, 'F');
+      // Logo in header
+      if (logoHeader) {
+        doc.addImage(logoHeader, 'PNG', 12, 4, 38, 18);
+      } else {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(255, 255, 255);
+        doc.text("African Aspirations", 12, 16);
+      }
+      // Report title + date (right-aligned)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.setTextColor(195, 219, 117);
+      doc.text("Deal Pipeline Report", pageW - 12, 13, { align: "right" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      doc.setTextColor(180, 210, 140);
+      doc.text(`${date}  ·  ${filtered.length} of ${deals.length} deals`, pageW - 12, 20, { align: "right" });
+    };
+
+    autoTable(doc, {
+      startY: 32,
+      head,
+      body,
+      styles: { font: "helvetica", fontSize: 8, cellPadding: 3, textColor: [24, 24, 27] },
+      headStyles: { fillColor: [66, 121, 58], textColor: [195, 219, 117], fontStyle: "bold", fontSize: 8 },
+      alternateRowStyles: { fillColor: [246, 250, 246] },
+      columnStyles: colStyles,
+      margin: { left: 12, right: 12, top: 32 },
+      didDrawPage: drawPageChrome,
+    });
 
     doc.save(`african-aspirations-deals-${new Date().toISOString().slice(0,10)}.pdf`);
     setExportOpen(false);
@@ -1071,12 +1120,12 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   return (
     <div className="min-h-screen bg-zinc-100" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
       {/* Nav */}
-      <header className="bg-white border-b border-zinc-100 h-16 flex items-center px-7">
+      <header className="bg-white border-b border-zinc-100 h-20 flex items-center px-7 sticky top-0 z-50">
         <div className="max-w-[1800px] mx-auto w-full flex items-center">
-        <div className="flex items-center gap-3 flex-1">
-          <img src="/logo.svg" alt="African Aspirations" className="h-10 w-auto shrink-0" />
-          <span className="hidden sm:inline text-zinc-200 text-xs shrink-0">|</span>
-          <h1 className="hidden sm:block text-lg font-semibold text-zinc-900 tracking-tight">Deal pipeline overview</h1>
+        <div className="flex items-center gap-4 flex-1">
+          <img src="/logo.svg" alt="African Aspirations" className="h-12 w-auto shrink-0" />
+          <span className="hidden sm:inline text-zinc-200 shrink-0">|</span>
+          <h1 className="hidden sm:block text-2xl font-semibold text-zinc-900 tracking-tight">Deal pipeline overview</h1>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-200 whitespace-nowrap">
@@ -1102,7 +1151,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
 
       <div className="flex">
         {/* Sidebar — desktop only */}
-        <aside className="hidden md:flex w-24 shrink-0 bg-white border-r border-zinc-100 sticky top-14 h-[calc(100vh-3.5rem)] flex-col items-center py-5 gap-2">
+        <aside className="hidden md:flex w-24 shrink-0 bg-white border-r border-zinc-100 sticky top-20 h-[calc(100vh-5rem)] flex-col items-center py-5 gap-2">
           <button
             onClick={() => setView("dashboard")}
             className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${view === "dashboard" ? "bg-[#215132] text-white" : "hover:bg-zinc-50 text-zinc-400 hover:text-zinc-700"}`}
@@ -1216,7 +1265,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                 >
                   <span className="flex items-center gap-2 truncate">
                     <Ic name="tag" size={13} className="text-zinc-400 shrink-0" />
-                    <span className="truncate">{filterIndustry === "all" ? "All industries" : filterIndustry}</span>
+                    <span className="truncate">{filterIndustry === "all" ? "All sectors" : filterIndustry}</span>
                   </span>
                   <Ic name="arrowDown" size={13} className="text-zinc-400 shrink-0" />
                 </button>
@@ -1224,7 +1273,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                   <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1 max-h-72 overflow-y-auto">
                     <button onClick={() => { setFilterIndustry("all"); setOpenDropdown(null); }}
                       className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === "all" ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
-                      All industries
+                      All sectors
                     </button>
                     {industries.map(v => (
                       <button key={v} onClick={() => { setFilterIndustry(v); setOpenDropdown(null); }}
@@ -1314,13 +1363,13 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
                   {openDropdown === "industry-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                   <button onClick={() => setOpenDropdown(o => o === "industry-m" ? null : "industry-m")}
                     className="relative z-40 h-11 min-w-[140px] max-w-[220px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
-                    <span className="flex items-center gap-2 truncate"><Ic name="tag" size={13} className="text-zinc-400 shrink-0" /><span className="truncate">{filterIndustry === "all" ? "All industries" : filterIndustry}</span></span>
+                    <span className="flex items-center gap-2 truncate"><Ic name="tag" size={13} className="text-zinc-400 shrink-0" /><span className="truncate">{filterIndustry === "all" ? "All sectors" : filterIndustry}</span></span>
                     <Ic name="arrowDown" size={13} className="text-zinc-400 shrink-0" />
                   </button>
                   {openDropdown === "industry-m" && (
                     <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1 max-h-72 overflow-y-auto">
                       <button onClick={() => { setFilterIndustry("all"); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === "all" ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>All industries</button>
+                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === "all" ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>All sectors</button>
                       {industries.map(v => (
                         <button key={v} onClick={() => { setFilterIndustry(v); setOpenDropdown(null); }}
                           className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>{v}</button>
@@ -1363,7 +1412,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 mb-5">
           <KpiCard label="Deals shown" value={filtered.length} sub={`of ${deals.length} total in pipeline`} icon="briefcase" />
           <KpiCard label="Pipeline size" value={fmtMoneyCompact(totalSize)} sub="Nominal value, filtered view" icon="money" />
-          <KpiCard label="Industries" value={industryCount} sub="Unique sectors in filtered view" icon="globe" />
+          <KpiCard label="Sectors" value={industryCount} sub="Unique sectors in filtered view" icon="globe" />
           <KpiCard label={perms.canUpdate ? "Teasers uploaded" : "Teasers ready"} value={teaserCount} sub={`${filtered.length - teaserCount} pending in view`} icon="document" />
         </div>
 
@@ -1453,10 +1502,10 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100">
-                  {[["#",null,52,null],["Entity","entity",null,null],["Code name","codeName",140,null],["Service","service",110,null],["Industry","industry",null,null],["Nominal size","size",200,null],["EBITDA","ebitda",180,null],["Revenues","revenues",200,null]].map(([lbl, field, w, mw]) => (
+                <tr className="border-b border-zinc-100 divide-x divide-zinc-100">
+                  {[["#",null,52,null],["Code name","codeName",null,null],...(isAdmin ? [["Entity","entity",null,null]] : []),["Sector","industry",null,null],["Service","service",110,null],["Asking Price","size",200,null],["Revenues","revenues",200,null],["EBITDA","ebitda",180,null]].map(([lbl, field, w, mw]) => (
                     <th key={lbl} onClick={() => field && toggleSort(field)} style={{ ...(w ? { width: w } : {}), ...(mw ? { maxWidth: mw } : {}) }}
-                      className={`px-4 py-3 text-left text-xs text-zinc-500 font-medium tracking-wide ${field ? "cursor-pointer hover:text-zinc-800 select-none" : ""}`}>
+                      className={`px-4 py-3 text-left text-xs text-zinc-500 font-medium tracking-wide whitespace-nowrap ${field ? "cursor-pointer hover:text-zinc-800 select-none" : ""}`}>
                       <span className="flex items-center gap-1.5">
                         {lbl}
                         {field && <SortIcon field={field} />}
@@ -1468,40 +1517,35 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
               <tbody>
                 {filtered.map((deal, idx) => (
                   <tr key={deal.id} onClick={() => setSelectedDeal(deal)}
-                    className="border-b border-zinc-50 hover:bg-zinc-50 cursor-pointer transition-colors">
+                    className="border-b border-zinc-50 divide-x divide-zinc-100 hover:bg-zinc-50 cursor-pointer transition-colors">
                     <td className="px-4 py-3.5 text-xs text-zinc-400 tabular-nums">{idx + 1}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-zinc-100 flex items-center justify-center text-xs text-zinc-600 font-medium shrink-0">
-                          {deal.entity.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-zinc-900 font-medium text-sm leading-tight">{deal.entity}</span>
-                          {teasers[deal.id] && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setTeaserView({ url: teasers[deal.id].url, dealName: deal.entity }); }}
-                              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-6 rounded-lg bg-[#f5faeb] text-[#42793A] hover:bg-[#42793A] hover:text-white transition-colors text-[11px] font-medium whitespace-nowrap"
-                            >
-                              See teaser
-                              <Ic name="arrowDown" size={11} className="-rotate-90" />
-                            </button>
-                          )}
-                        </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-zinc-900 font-medium text-sm leading-tight">{deal.codeName}</span>
+                        {teasers[deal.id] && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setTeaserView({ url: teasers[deal.id].url, dealName: deal.entity }); }}
+                            className="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-6 rounded-lg bg-[#42793A] text-white text-[11px] font-medium whitespace-nowrap"
+                          >
+                            See teaser
+                            <Ic name="arrowDown" size={11} className="-rotate-90" />
+                          </button>
+                        )}
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-600 whitespace-nowrap">{deal.codeName}</td>
+                    {isAdmin && <td className="px-4 py-3.5 text-sm text-zinc-900 whitespace-nowrap">{deal.entity}</td>}
+                    <td className="px-4 py-3.5 text-sm text-zinc-700 whitespace-nowrap">{deal.industry}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       <span className={`text-sm px-2.5 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-700 whitespace-nowrap">{deal.industry}</td>
                     <td className={`px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap ${sizeRowBg(deal.size)}`}>{fmtMoney(deal.size)}</td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap">{fmtMoney(deal.ebitda)}</td>
                     <td className="px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap">{fmtMoney(deal.revenues)}</td>
+                    <td className="px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap">{fmtMoney(deal.ebitda)}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="py-20 text-center">
+                    <td colSpan={isAdmin ? 8 : 7} className="py-20 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center">
                           <Ic name="search" size={18} className="text-zinc-400" />
