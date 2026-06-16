@@ -349,8 +349,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
             <div className="flex items-center gap-2">
               <span className={`text-xs px-2.5 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
             </div>
-            <DialogTitle className="text-lg font-semibold text-zinc-900">{deal.entity}</DialogTitle>
-            <p className="text-sm text-zinc-600">{deal.codeName}</p>
+            <DialogTitle className="text-lg font-semibold text-zinc-900">{deal.codeName}</DialogTitle>
           </div>
           <div className="flex items-center gap-2">
             {confirmDelete ? (
@@ -1098,8 +1097,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
 
   // KPI stats computed from FILTERED set
   const totalSize = filtered.reduce((s, d) => s + (d.size || 0), 0);
-  const byService = { Funding: filtered.filter(d => d.service === "Funding").length, Brokerage: filtered.filter(d => d.service === "Brokerage").length, Consulting: filtered.filter(d => d.service === "Consulting").length };
-  const teaserCount = filtered.filter(d => teasers[d.id]).length;
+const teaserCount = filtered.filter(d => teasers[d.id]).length;
   const industryCount = new Set(filtered.map(d => d.industry).filter(Boolean)).size;
 
   function toggleSort(field) {
@@ -1125,7 +1123,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         <div className="flex items-center gap-4 flex-1">
           <img src="/logo.svg" alt="African Aspirations" className="h-12 w-auto shrink-0" />
           <span className="hidden sm:inline text-zinc-200 shrink-0">|</span>
-          <h1 className="hidden sm:block text-2xl font-semibold text-zinc-900 tracking-tight">Deal pipeline overview</h1>
+          <h1 className="hidden sm:block text-2xl font-semibold text-zinc-900 tracking-tight">Business Deal Portfolio</h1>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-200 whitespace-nowrap">
@@ -1411,7 +1409,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
         {/* KPI Cards — driven by filtered set */}
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 mb-5">
           <KpiCard label="Deals shown" value={filtered.length} sub={`of ${deals.length} total in pipeline`} icon="briefcase" />
-          <KpiCard label="Pipeline size" value={fmtMoneyCompact(totalSize)} sub="Nominal value, filtered view" icon="money" />
+          <KpiCard label="Portfolio Size" value={fmtMoneyCompact(totalSize)} sub="Nominal value, filtered view" icon="money" />
           <KpiCard label="Sectors" value={industryCount} sub="Unique sectors in filtered view" icon="globe" />
           <KpiCard label={perms.canUpdate ? "Teasers uploaded" : "Teasers ready"} value={teaserCount} sub={`${filtered.length - teaserCount} pending in view`} icon="document" />
         </div>
@@ -1432,11 +1430,11 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
               <button key={deal.id} onClick={() => setSelectedDeal(deal)}
                 className="w-full text-left px-5 py-4 flex items-center gap-3 active:bg-zinc-50 transition-colors">
                 <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-sm text-zinc-600 font-medium shrink-0">
-                  {deal.entity.charAt(0).toUpperCase()}
+                  {deal.codeName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="text-sm text-zinc-900 font-medium truncate">{deal.entity}</span>
+                    <span className="text-sm text-zinc-900 font-medium truncate">{deal.codeName}</span>
                     {teasers[deal.id] && <Ic name="document" size={13} className="text-[#42793A] shrink-0" />}
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1502,7 +1500,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-100 divide-x divide-zinc-100">
+                <tr className="border-b border-zinc-300 divide-x divide-zinc-300">
                   {[["#",null,52,null],["Code name","codeName",null,null],...(isAdmin ? [["Entity","entity",null,null]] : []),["Sector","industry",null,null],["Service","service",110,null],["Asking Price","size",200,null],["Revenues","revenues",200,null],["EBITDA","ebitda",180,null]].map(([lbl, field, w, mw]) => (
                     <th key={lbl} onClick={() => field && toggleSort(field)} style={{ ...(w ? { width: w } : {}), ...(mw ? { maxWidth: mw } : {}) }}
                       className={`px-4 py-3 text-left text-xs text-zinc-500 font-medium tracking-wide whitespace-nowrap ${field ? "cursor-pointer hover:text-zinc-800 select-none" : ""}`}>
@@ -1517,14 +1515,14 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
               <tbody>
                 {filtered.map((deal, idx) => (
                   <tr key={deal.id} onClick={() => setSelectedDeal(deal)}
-                    className="border-b border-zinc-50 divide-x divide-zinc-100 hover:bg-zinc-50 cursor-pointer transition-colors">
+                    className="border-b border-zinc-200 divide-x divide-zinc-300 hover:bg-zinc-50 cursor-pointer transition-colors">
                     <td className="px-4 py-3.5 text-xs text-zinc-400 tabular-nums">{idx + 1}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <span className="text-zinc-900 font-medium text-sm leading-tight">{deal.codeName}</span>
                         {teasers[deal.id] && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); setTeaserView({ url: teasers[deal.id].url, dealName: deal.entity }); }}
+                            onClick={(e) => { e.stopPropagation(); setTeaserView({ url: teasers[deal.id].url, dealName: deal.codeName }); }}
                             className="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-6 rounded-lg bg-[#42793A] text-white text-[11px] font-medium whitespace-nowrap"
                           >
                             See teaser
