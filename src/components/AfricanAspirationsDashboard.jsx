@@ -25,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { validatePdfFile } from "@/lib/utils";
 import {
   isEmailApproved,
   getApprovedEmails,
@@ -323,12 +324,17 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ ...deal });
+  const [uploadError, setUploadError] = useState("");
   const fileRef = useRef();
   const teaser = teasers[deal.id];
 
-  function handleFile(e) {
+  async function handleFile(e) {
     const f = e.target.files[0];
+    e.target.value = "";
     if (!f) return;
+    const check = await validatePdfFile(f);
+    if (!check.valid) { setUploadError(check.error); return; }
+    setUploadError("");
     onUpload(deal.id, f);
   }
 
@@ -517,6 +523,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
               )}
             </div>
           )}
+          {uploadError && <p className="text-xs text-red-600 font-light mt-2">{uploadError}</p>}
           <input type="file" accept=".pdf" ref={fileRef} className="hidden" onChange={handleFile} />
         </div>
       </DialogContent>
@@ -727,7 +734,7 @@ function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
 // ─── Add Deal Modal ───────────────────────────
 const EMPTY_NEW_DEAL = { entity: "", codeName: "", service: "Funding", about: "", industry: "", size: "", ebitda: "", revenues: "" };
 
-function AddDealModal({ onClose, onAdd, industries = [] }) {
+function AddDealModal({ onClose, onAdd, industries = [], userEmail }) {
   const [form, setForm] = useState(EMPTY_NEW_DEAL);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -738,7 +745,7 @@ function AddDealModal({ onClose, onAdd, industries = [] }) {
   async function handleSave() {
     if (!form.entity.trim()) { setError("Entity name is required."); return; }
     setSaving(true);
-    const result = await createDeal(form);
+    const result = await createDeal(form, userEmail);
     setSaving(false);
     if (result.success && result.data) {
       onAdd(normalizeDeal(result.data));
@@ -891,7 +898,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   }, []);
 
   async function handleUpload(dealId, file) {
-    const result = await uploadTeaser(dealId, file);
+    const result = await uploadTeaser(dealId, file, userEmail);
     if (result.success) {
       const url = getTeaserPublicUrl(result.path);
       setTeasers(prev => ({ ...prev, [dealId]: { url, name: file.name } }));
@@ -903,7 +910,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   }
 
   async function handleUpdateDeal(updated) {
-    const result = await updateDeal(updated.id, updated);
+    const result = await updateDeal(updated.id, updated, userEmail);
     if (result.success && result.data) {
       const normalized = normalizeDeal(result.data);
       setDeals(deals.map(d => d.id === updated.id ? normalized : d));
@@ -914,7 +921,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   }
 
   async function handleDeleteDeal(id) {
-    const result = await deleteDeal(id);
+    const result = await deleteDeal(id, userEmail);
     if (result.success) {
       setDeals(prev => prev.filter(d => d.id !== id));
       setSelectedDeal(null);
@@ -925,7 +932,7 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
 
   async function handleRemoveTeaser(dealId) {
     const deal = deals.find(d => d.id === dealId);
-    const result = await removeTeaser(dealId, deal?.teaserPath ?? null);
+    const result = await removeTeaser(dealId, deal?.teaserPath ?? null, userEmail);
     if (result.success) {
       setTeasers(prev => { const next = { ...prev }; delete next[dealId]; return next; });
       setDeals(prev => prev.map(d => d.id === dealId ? { ...d, teaserPath: null } : d));
@@ -1580,7 +1587,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
       </div>
 
       {selectedDeal && <DealModal deal={selectedDeal} perms={perms} teasers={teasers} onUpload={handleUpload} onRemoveTeaser={handleRemoveTeaser} onClose={() => setSelectedDeal(null)} onUpdate={handleUpdateDeal} onDelete={handleDeleteDeal} industries={industries} />}
-      {showAddDeal && <AddDealModal onClose={() => setShowAddDeal(false)} onAdd={deal => setDeals(prev => [deal, ...prev])} industries={industries} />}
+      {showAddDeal && <AddDealModal onClose={() => setShowAddDeal(false)} onAdd={deal => setDeals(prev => [deal, ...prev])} industries={industries} userEmail={userEmail} />}
       {teaserView && <TeaserViewer url={teaserView.url} dealName={teaserView.dealName} onClose={() => setTeaserView(null)} />}
     </div>
   );

@@ -4,6 +4,20 @@ function missingClientResponse() {
   return { success: false, data: [], error: 'Supabase client not initialized. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
 }
 
+async function callDealsApi(method, body) {
+  try {
+    const res = await fetch('/api/deals', {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    return await res.json()
+  } catch (err) {
+    console.error('Error calling deals API:', err)
+    return { success: false, error: err.message }
+  }
+}
+
 export async function getAllDeals() {
   if (!supabase) return missingClientResponse()
   try {
@@ -19,69 +33,19 @@ export async function getAllDeals() {
   }
 }
 
-export async function createDeal(deal) {
-  if (!supabase) return missingClientResponse()
-  try {
-    const { data, error } = await supabase
-      .from('deals')
-      .insert([{
-        entity:   deal.entity,
-        code_name: deal.codeName,
-        service:  deal.service,
-        about:    deal.about,
-        industry: deal.industry,
-        size:     deal.size ? Number(deal.size) : null,
-        ebitda:   deal.ebitda ? Number(deal.ebitda) : null,
-        revenues: deal.revenues ? Number(deal.revenues) : null,
-      }])
-      .select()
-    if (error) throw error
-    return { success: true, data: data?.[0] }
-  } catch (err) {
-    console.error('Error creating deal:', err)
-    return { success: false, error: err.message }
-  }
+export async function createDeal(deal, requesterEmail) {
+  return callDealsApi('POST', { requesterEmail, deal })
 }
 
-export async function updateDeal(id, updates) {
-  if (!supabase) return missingClientResponse()
-  try {
-    const payload = {
-      entity:   updates.entity,
-      code_name: updates.codeName,
-      service:  updates.service,
-      about:    updates.about,
-      industry: updates.industry,
-      size:     updates.size ? Number(updates.size) : null,
-      ebitda:   updates.ebitda ? Number(updates.ebitda) : null,
-      revenues: updates.revenues ? Number(updates.revenues) : null,
-    }
-    const { data, error } = await supabase
-      .from('deals')
-      .update(payload)
-      .eq('id', id)
-      .select()
-    if (error) throw error
-    return { success: true, data: data?.[0] }
-  } catch (err) {
-    console.error('Error updating deal:', err)
-    return { success: false, error: err.message }
-  }
+export async function updateDeal(id, updates, requesterEmail) {
+  return callDealsApi('PATCH', { requesterEmail, id, updates })
 }
 
-export async function deleteDeal(id) {
-  if (!supabase) return missingClientResponse()
-  try {
-    const { error } = await supabase.from('deals').delete().eq('id', id)
-    if (error) throw error
-    return { success: true }
-  } catch (err) {
-    console.error('Error deleting deal:', err)
-    return { success: false, error: err.message }
-  }
+export async function deleteDeal(id, requesterEmail) {
+  return callDealsApi('DELETE', { requesterEmail, id })
 }
 
-export async function uploadTeaser(dealId, file) {
+export async function uploadTeaser(dealId, file, requesterEmail) {
   if (!supabase) return missingClientResponse()
   try {
     const path = `${dealId}/teaser.pdf`
@@ -89,11 +53,8 @@ export async function uploadTeaser(dealId, file) {
       .from('teasers')
       .upload(path, file, { upsert: true, contentType: 'application/pdf' })
     if (uploadError) throw uploadError
-    const { error: updateError } = await supabase
-      .from('deals')
-      .update({ teaser_path: path })
-      .eq('id', dealId)
-    if (updateError) throw updateError
+    const result = await callDealsApi('PATCH', { requesterEmail, id: dealId, updates: { teaserPath: path } })
+    if (!result.success) throw new Error(result.error || 'Failed to record teaser path.')
     return { success: true, path }
   } catch (err) {
     console.error('Error uploading teaser:', err)
@@ -106,18 +67,14 @@ export function getTeaserPublicUrl(path) {
   return supabase.storage.from('teasers').getPublicUrl(path).data.publicUrl
 }
 
-export async function removeTeaser(dealId, path) {
-  if (!supabase) return { success: false, error: 'Supabase client not initialized.' }
+export async function removeTeaser(dealId, path, requesterEmail) {
   try {
-    if (path) {
+    if (path && supabase) {
       const { error: storageError } = await supabase.storage.from('teasers').remove([path])
       if (storageError) throw storageError
     }
-    const { error: updateError } = await supabase
-      .from('deals')
-      .update({ teaser_path: null })
-      .eq('id', dealId)
-    if (updateError) throw updateError
+    const result = await callDealsApi('PATCH', { requesterEmail, id: dealId, updates: { teaserPath: null } })
+    if (!result.success) throw new Error(result.error || 'Failed to clear teaser path.')
     return { success: true }
   } catch (err) {
     console.error('Error removing teaser:', err)

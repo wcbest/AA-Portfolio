@@ -8,72 +8,30 @@ export async function isEmailApproved(email) {
   if (!supabase) return missingClientResponse()
   try {
     const { data, error } = await supabase
-      .from('approved_emails')
-      .select('id, is_admin, role')
-      .eq('email', email.toLowerCase())
-      .single()
+      .rpc('check_approved_email', { check_email: email.toLowerCase() })
 
-    if (error) return { approved: false, role: 'viewer' }
-
-    // Derive role: prefer explicit role column, fall back to is_admin flag
-    const role = data?.role || (data?.is_admin ? 'admin' : 'viewer')
-    return { approved: true, role }
+    if (error || !data?.length) return { approved: false, role: 'viewer' }
+    return { approved: !!data[0].approved, role: data[0].role || 'viewer' }
   } catch (err) {
     console.error('Error checking approved email:', err)
     return { approved: false, role: 'viewer' }
   }
 }
 
+// NOTE: approved_emails is no longer directly readable/writable by the
+// client (see sql/security_hardening.sql) - the old select-all policy was a
+// public-read leak of every email + admin flag. Listing/adding/removing
+// approved emails from the admin panel will start failing until the
+// Supabase Auth migration lands and these can be rebuilt as RPCs that check
+// a real auth session instead of a client-supplied "is this an admin" claim.
 export async function getApprovedEmails() {
-  if (!supabase) return []
-  try {
-    const { data, error } = await supabase
-      .from('approved_emails')
-      .select('email, is_admin, role')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return (data || []).map(row => ({
-      ...row,
-      role: row.role || (row.is_admin ? 'admin' : 'viewer'),
-    }))
-  } catch (err) {
-    console.error('Error fetching approved emails:', err)
-    return []
-  }
+  return []
 }
 
-export async function addApprovedEmail(email, role = 'viewer') {
-  if (!supabase) return { success: false, error: 'Supabase client not initialized.' }
-  try {
-    const { data, error } = await supabase
-      .from('approved_emails')
-      .upsert(
-        { email: email.toLowerCase(), role, is_admin: role === 'admin' },
-        { onConflict: 'email' }
-      )
-      .select()
-
-    if (error) throw error
-    return { success: true, data }
-  } catch (err) {
-    console.error('Error adding approved email:', err)
-    return { success: false, error: err.message }
-  }
+export async function addApprovedEmail() {
+  return { success: false, error: 'Approved-email management is disabled pending the Supabase Auth migration.' }
 }
 
-export async function removeApprovedEmail(email) {
-  if (!supabase) return { success: false, error: 'Supabase client not initialized.' }
-  try {
-    const { error } = await supabase
-      .from('approved_emails')
-      .delete()
-      .eq('email', email.toLowerCase())
-
-    if (error) throw error
-    return { success: true }
-  } catch (err) {
-    console.error('Error removing approved email:', err)
-    return { success: false, error: err.message }
-  }
+export async function removeApprovedEmail() {
+  return { success: false, error: 'Approved-email management is disabled pending the Supabase Auth migration.' }
 }
