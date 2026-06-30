@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient'
+import { teaserContentType } from './utils'
 
 function missingClientResponse() {
   return { success: false, data: [], error: 'Supabase client not initialized. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
@@ -48,10 +49,12 @@ export async function deleteDeal(id, requesterEmail) {
 export async function uploadTeaser(dealId, file, requesterEmail) {
   if (!supabase) return missingClientResponse()
   try {
-    const path = `${dealId}/teaser.pdf`
+    const ext = file.name.split('.').pop().toLowerCase()
+    const safeExt = ['jpg', 'jpeg', 'png'].includes(ext) ? (ext === 'jpeg' ? 'jpg' : ext) : 'pdf'
+    const path = `${dealId}/teaser.${safeExt}`
     const { error: uploadError } = await supabase.storage
       .from('teasers')
-      .upload(path, file, { upsert: true, contentType: 'application/pdf' })
+      .upload(path, file, { upsert: true, contentType: teaserContentType(path) })
     if (uploadError) throw uploadError
     const result = await callDealsApi('PATCH', { requesterEmail, id: dealId, updates: { teaserPath: path } })
     if (!result.success) throw new Error(result.error || 'Failed to record teaser path.')

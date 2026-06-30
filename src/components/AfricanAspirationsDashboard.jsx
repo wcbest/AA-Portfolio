@@ -26,7 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { validatePdfFile } from "@/lib/utils";
+import { validateTeaserFile, isImagePath } from "@/lib/utils";
 import {
   isEmailApproved,
   getApprovedEmails,
@@ -249,27 +249,27 @@ function AuthScreen({ onLogin }) {
         {/* Wordmark */}
         <div className="mb-10 text-center">
           <img src="/logo.svg" alt="African Aspirations" className="h-10 w-auto mx-auto mb-5" />
-          <p className="text-sm text-zinc-400 mt-1 font-light">Pipeline Intelligence Portal</p>
+          <p className="text-sm text-zinc-400 mt-1 font-normal">Pipeline Intelligence Portal</p>
         </div>
 
         <div className="bg-white border border-zinc-200 rounded-2xl p-7 shadow-sm">
-          <p className="text-xs text-zinc-500 font-light mb-5 text-center">Sign in with your approved email to continue</p>
+          <p className="text-xs text-zinc-500 font-normal mb-5 text-center">Sign in with your approved email to continue</p>
 
           <div className="space-y-4">
             <div>
-              <Label className="text-xs text-zinc-500 font-light mb-1.5 block">Email address</Label>
+              <Label className="text-xs text-zinc-500 font-normal mb-1.5 block">Email address</Label>
               <Input
                 type="email" value={email}
                 onChange={e => { setEmail(e.target.value); setErr(""); }}
                 onKeyDown={e => e.key === "Enter" && email && submit()}
                 placeholder="you@example.com"
-                className="h-10 w-full px-4 text-sm font-light border-zinc-200 focus:border-zinc-400 rounded-xl"
+                className="h-10 w-full px-4 text-sm font-normal border-zinc-200 focus:border-zinc-400 rounded-xl"
               />
             </div>
 
             {err && (
               <Alert variant="destructive" className="py-2 rounded-xl border-red-200 bg-red-50">
-                <AlertDescription className="text-xs text-red-600 font-light flex items-center gap-2">
+                <AlertDescription className="text-xs text-red-600 font-normal flex items-center gap-2">
                   <Ic name="warning" size={14} className="text-red-500 shrink-0" />
                   {err}
                 </AlertDescription>
@@ -279,14 +279,14 @@ function AuthScreen({ onLogin }) {
             <Button
               onClick={submit}
               disabled={loading || !email}
-              className="w-full h-10 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white text-sm font-light"
+              className="w-full h-10 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white text-sm font-normal"
             >
               {loading ? "Verifying…" : "Access dashboard"}
             </Button>
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-400 font-light mt-5">
+        <p className="text-center text-xs text-zinc-400 font-normal mt-5">
           Access is restricted to pre-approved team members only.
         </p>
       </div>
@@ -359,13 +359,13 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
     const f = e.target.files[0];
     e.target.value = "";
     if (!f) return;
-    const check = await validatePdfFile(f);
+    const check = await validateTeaserFile(f);
     if (!check.valid) { setUploadError(check.error); return; }
     setUploadError("");
     onUpload(deal.id, f);
   }
 
-  function saveEdit() { onUpdate({ ...form, teaserIsNew: deal.teaserIsNew }); setEditing(false); }
+  function saveEdit() { onUpdate({ ...form, teaserPath: deal.teaserPath, teaserIsNew: deal.teaserIsNew }); setEditing(false); }
 
   async function handleDelete() {
     setDeleting(true);
@@ -387,24 +387,24 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
           <div className="flex items-center gap-2">
             {confirmDelete ? (
               <>
-                <span className="text-xs text-zinc-500 font-light mr-1">Delete this deal?</span>
-                <Button onClick={handleDelete} disabled={deleting} className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-light h-9 px-5 text-sm whitespace-nowrap disabled:opacity-50">
+                <span className="text-xs text-zinc-500 font-normal mr-1">Delete this deal?</span>
+                <Button onClick={handleDelete} disabled={deleting} className="inline-flex items-center gap-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-normal h-9 px-5 text-sm whitespace-nowrap disabled:opacity-50">
                   {deleting ? "Deleting…" : "Yes, delete"}
                 </Button>
-                <Button onClick={() => setConfirmDelete(false)} variant="outline" className="rounded-xl border-zinc-200 font-light h-9 px-5 text-sm">Cancel</Button>
+                <Button onClick={() => setConfirmDelete(false)} variant="outline" className="rounded-xl border-zinc-200 font-normal h-9 px-5 text-sm">Cancel</Button>
               </>
             ) : (
               <>
                 {perms.canUpdate && !editing && (
-                  <Button onClick={() => setEditing(true)} size="sm" className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-5 text-sm whitespace-nowrap">
+                  <Button onClick={() => setEditing(true)} size="sm" className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-9 px-5 text-sm whitespace-nowrap">
                     <Ic name="edit" size={14} />
                     Edit deal
                   </Button>
                 )}
                 {perms.canUpdate && editing && (
                   <>
-                    <Button onClick={saveEdit} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-5 text-sm whitespace-nowrap">Save changes</Button>
-                    <Button onClick={() => setEditing(false)} variant="outline" className="rounded-xl border-zinc-200 font-light h-9 px-5 text-sm">Cancel</Button>
+                    <Button onClick={saveEdit} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-9 px-5 text-sm whitespace-nowrap">Save changes</Button>
+                    <Button onClick={() => setEditing(false)} variant="outline" className="rounded-xl border-zinc-200 font-normal h-9 px-5 text-sm">Cancel</Button>
                   </>
                 )}
                 {perms.canDelete && !editing && (
@@ -428,12 +428,12 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                 {/* Entity name — full width */}
                 <div className="col-span-2">
                   <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Entity name</p>
-                  <Input value={form.entity || ""} onChange={e => setForm(p => ({ ...p, entity: e.target.value }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50" />
+                  <Input value={form.entity || ""} onChange={e => setForm(p => ({ ...p, entity: e.target.value }))} className="h-10 px-4 text-sm font-normal border-zinc-200 rounded-xl bg-zinc-50" />
                 </div>
                 {/* Code name */}
                 <div>
                   <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Code name</p>
-                  <Input value={form.codeName || ""} onChange={e => setForm(p => ({ ...p, codeName: e.target.value }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50" />
+                  <Input value={form.codeName || ""} onChange={e => setForm(p => ({ ...p, codeName: e.target.value }))} className="h-10 px-4 text-sm font-normal border-zinc-200 rounded-xl bg-zinc-50" />
                 </div>
                 {/* Service */}
                 <div>
@@ -441,7 +441,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                   <select
                     value={form.service || "Funding"}
                     onChange={e => setForm(p => ({ ...p, service: e.target.value }))}
-                    className="w-full h-10 px-4 text-sm font-light border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                    className="w-full h-10 px-4 text-sm font-normal border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900"
                   >
                     {["Funding", "Brokerage", "Consulting"].map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
@@ -452,7 +452,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                   <select
                     value={form.industry || ""}
                     onChange={e => setForm(p => ({ ...p, industry: e.target.value }))}
-                    className="w-full h-10 px-4 text-sm font-light border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900"
+                    className="w-full h-10 px-4 text-sm font-normal border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900"
                   >
                     <option value="">Select sector…</option>
                     {industries.map(v => <option key={v} value={v}>{v}</option>)}
@@ -461,15 +461,15 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                 {/* Numeric fields */}
                 <div>
                   <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Asking price (USD)</p>
-                  <Input value={form.size || ""} onChange={e => setForm(p => ({ ...p, size: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
+                  <Input value={form.size || ""} onChange={e => setForm(p => ({ ...p, size: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-normal border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">EBITDA (USD)</p>
-                  <Input value={form.ebitda || ""} onChange={e => setForm(p => ({ ...p, ebitda: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
+                  <Input value={form.ebitda || ""} onChange={e => setForm(p => ({ ...p, ebitda: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-normal border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2">Revenues (USD)</p>
-                  <Input value={form.revenues || ""} onChange={e => setForm(p => ({ ...p, revenues: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
+                  <Input value={form.revenues || ""} onChange={e => setForm(p => ({ ...p, revenues: Number(e.target.value) || null }))} className="h-10 px-4 text-sm font-normal border-zinc-200 rounded-xl bg-zinc-50 tabular-nums" type="number" />
                 </div>
                 {/* About — full width textarea */}
                 <div className="col-span-2">
@@ -478,7 +478,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                     value={form.about || ""}
                     onChange={e => setForm(p => ({ ...p, about: e.target.value }))}
                     rows={4}
-                    className="w-full px-4 py-3 text-sm font-light border border-zinc-200 rounded-xl bg-zinc-50 resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-800"
+                    className="w-full px-4 py-3 text-sm font-normal border border-zinc-200 rounded-xl bg-zinc-50 resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900 text-zinc-800"
                   />
                 </div>
               </div>
@@ -512,7 +512,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
           {teaser ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-zinc-500 font-light">
+                <div className="flex items-center gap-2 text-sm text-zinc-500 font-normal">
                   <Ic name="document" size={15} className="text-zinc-400" />
                   {teaser.name}
                 </div>
@@ -526,20 +526,22 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                     </button>
                   )}
                   {perms.canUpdate && (
-                    <Button onClick={() => fileRef.current.click()} variant="outline" size="sm" className="inline-flex items-center gap-1.5 rounded-xl border-zinc-200 font-light h-8 text-xs">
+                    <Button onClick={() => fileRef.current.click()} variant="outline" size="sm" className="inline-flex items-center gap-1.5 rounded-xl border-zinc-200 font-normal h-8 text-xs">
                       <Ic name="upload" size={13} />
                       Replace
                     </Button>
                   )}
                   {perms.canDelete && (
-                    <Button onClick={() => onRemoveTeaser(deal.id)} variant="outline" size="sm" className="inline-flex items-center gap-1.5 rounded-xl border-red-200 text-red-500 hover:bg-red-50 font-light h-8 text-xs">
+                    <Button onClick={() => onRemoveTeaser(deal.id)} variant="outline" size="sm" className="inline-flex items-center gap-1.5 rounded-xl border-red-200 text-red-500 hover:bg-red-50 font-normal h-8 text-xs">
                       <Ic name="trash" size={13} />
                       Remove teaser
                     </Button>
                   )}
                 </div>
               </div>
-              {isTouch ? (
+              {isImagePath(teaser.name) ? (
+                <img src={teaser.url} alt="Deal teaser" className="w-full rounded-xl border border-zinc-200 object-contain bg-zinc-50" style={{ maxHeight: 440 }} />
+              ) : isTouch ? (
                 <PdfViewer url={teaser.url} className="h-[440px] rounded-xl border border-zinc-200 bg-white" />
               ) : (
                 <iframe src={teaser.url} className="w-full rounded-xl border border-zinc-200" style={{ height: 440 }} title="Deal Teaser" />
@@ -551,19 +553,19 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                 <Ic name="pdf" size={22} className="text-zinc-400" />
               </div>
               <div>
-                <p className="text-sm text-zinc-700 font-light">{perms.canUpdate ? "No teaser uploaded yet" : "No teaser available for this deal"}</p>
-                <p className="text-xs text-zinc-400 font-light mt-1">{perms.canUpdate ? "Upload a PDF to make it available to all users." : "Check back later or contact your administrator."}</p>
+                <p className="text-sm text-zinc-700 font-normal">{perms.canUpdate ? "No teaser uploaded yet" : "No teaser available for this deal"}</p>
+                <p className="text-xs text-zinc-400 font-normal mt-1">{perms.canUpdate ? "Upload a PDF, JPG, or PNG to make it available to all users." : "Check back later or contact your administrator."}</p>
               </div>
               {perms.canUpdate && (
-                <Button onClick={() => fileRef.current.click()} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-6 text-sm whitespace-nowrap">
+                <Button onClick={() => fileRef.current.click()} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-9 px-6 text-sm whitespace-nowrap">
                   <Ic name="upload" size={15} />
                   Upload deal teaser
                 </Button>
               )}
             </div>
           )}
-          {uploadError && <p className="text-xs text-red-600 font-light mt-2">{uploadError}</p>}
-          <input type="file" accept=".pdf" ref={fileRef} className="hidden" onChange={handleFile} />
+          {uploadError && <p className="text-xs text-red-600 font-normal mt-2">{uploadError}</p>}
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png" ref={fileRef} className="hidden" onChange={handleFile} />
         </div>
       </DialogContent>
     </Dialog>
@@ -640,13 +642,13 @@ function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
     }
   }
 
-  const selectClass = "h-10 px-3 text-sm font-light border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900";
-  const selectSmClass = "h-8 px-3 text-xs font-light border border-zinc-200 rounded-xl bg-white text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900";
+  const selectClass = "h-10 px-3 text-sm font-normal border border-zinc-200 rounded-xl bg-zinc-50 text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900";
+  const selectSmClass = "h-8 px-3 text-xs font-normal border border-zinc-200 rounded-xl bg-white text-zinc-800 appearance-none focus:outline-none focus:ring-2 focus:ring-zinc-900";
 
   return (
     <div>
       {/* Page header */}
-      <div className="mb-7 rounded-[28px] border border-zinc-100 bg-white p-6 shadow-sm">
+      <div className="mb-7 rounded-[20px] border border-zinc-100 bg-white p-6 shadow-sm">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-zinc-400 font-semibold">Admin</p>
           <h1 className="mt-3 text-3xl font-semibold text-zinc-900 tracking-tight">Settings</h1>
@@ -659,11 +661,11 @@ function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
       </div>
 
       {/* Access control — full width */}
-      <div className="rounded-[28px] border border-zinc-100 bg-white p-6 shadow-sm mb-5">
+      <div className="rounded-[20px] border border-zinc-100 bg-white p-6 shadow-sm mb-5">
         <p className="text-xs uppercase tracking-[0.28em] text-zinc-400 font-semibold mb-5">Access control</p>
 
-        {emailError && <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-light text-red-700">{emailError}</div>}
-        {emailSuccess && <div className="mb-4 rounded-2xl border border-[#C3DB75] bg-[#f5faeb] px-4 py-3 text-sm font-light text-[#42793A]">{emailSuccess}</div>}
+        {emailError && <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-normal text-red-700">{emailError}</div>}
+        {emailSuccess && <div className="mb-4 rounded-2xl border border-[#C3DB75] bg-[#f5faeb] px-4 py-3 text-sm font-normal text-[#42793A]">{emailSuccess}</div>}
 
         <div className="flex gap-2 mb-5">
           <Input
@@ -671,14 +673,14 @@ function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
             onChange={e => { setNewEmail(e.target.value); setEmailError(""); }}
             onKeyDown={e => e.key === "Enter" && addEmail()}
             placeholder="new@email.com"
-            className="h-10 text-sm font-light border-zinc-200 rounded-xl bg-zinc-50 px-4 flex-1"
+            className="h-10 text-sm font-normal border-zinc-200 rounded-xl bg-zinc-50 px-4 flex-1"
           />
           <select value={newRole} onChange={e => setNewRole(e.target.value)} className={selectClass}>
             <option value="viewer">Viewer</option>
             <option value="editor">Editor</option>
             <option value="admin">Admin</option>
           </select>
-          <Button onClick={addEmail} disabled={savingEmail} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-10 px-5 text-sm whitespace-nowrap disabled:opacity-50">
+          <Button onClick={addEmail} disabled={savingEmail} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-10 px-5 text-sm whitespace-nowrap disabled:opacity-50">
             <Ic name="plus" size={14} />
             {savingEmail ? "Adding…" : "Add user"}
           </Button>
@@ -687,8 +689,8 @@ function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
         {/* Role legend */}
         <div className="flex gap-3 mb-5 flex-wrap">
           {Object.entries(ROLE_META).map(([role, { label, badge }]) => (
-            <div key={role} className="flex items-center gap-2 text-xs text-zinc-500 font-light">
-              <span className={`px-2 py-0.5 rounded-full border text-xs font-light ${badge}`}>{label}</span>
+            <div key={role} className="flex items-center gap-2 text-xs text-zinc-500 font-normal">
+              <span className={`px-2 py-0.5 rounded-full border text-xs font-normal ${badge}`}>{label}</span>
               <span>{role === "admin" ? "Full access" : role === "editor" ? "Create & edit" : "Read only"}</span>
             </div>
           ))}
@@ -704,9 +706,9 @@ function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
               <div key={approved.email} className={`flex items-center justify-between px-4 py-3 rounded-2xl transition-colors ${isEditing ? "bg-white border border-zinc-200" : "bg-zinc-50"}`}>
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <Ic name="mail" size={14} className="text-zinc-400 shrink-0" />
-                  <span className="text-sm font-light text-zinc-700 truncate">{approved.email}</span>
+                  <span className="text-sm font-normal text-zinc-700 truncate">{approved.email}</span>
                   {!isEditing && (
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-light shrink-0 ${meta.badge}`}>{meta.label}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border font-normal shrink-0 ${meta.badge}`}>{meta.label}</span>
                   )}
                 </div>
 
@@ -724,14 +726,14 @@ function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
                     <Button
                       onClick={() => saveRole(approved.email)}
                       disabled={savingRole}
-                      className="h-8 px-3 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light text-xs whitespace-nowrap disabled:opacity-50"
+                      className="h-8 px-3 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal text-xs whitespace-nowrap disabled:opacity-50"
                     >
                       {savingRole ? "Saving…" : "Save"}
                     </Button>
                     <Button
                       onClick={() => setEditingRole(null)}
                       variant="outline"
-                      className="h-8 px-3 rounded-xl border-zinc-200 font-light text-xs"
+                      className="h-8 px-3 rounded-xl border-zinc-200 font-normal text-xs"
                     >
                       Cancel
                     </Button>
@@ -778,7 +780,7 @@ function AddDealModal({ onClose, onAdd, industries = [], userEmail }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const fieldClass = "w-full bg-zinc-50 px-4 h-10 border border-zinc-200 rounded-xl text-sm font-light text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900";
+  const fieldClass = "w-full bg-zinc-50 px-4 h-10 border border-zinc-200 rounded-xl text-sm font-normal text-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900";
   const labelClass = "text-[11px] font-semibold text-zinc-600 uppercase tracking-widest mb-2 block";
 
   async function handleSave() {
@@ -801,7 +803,7 @@ function AddDealModal({ onClose, onAdd, industries = [], userEmail }) {
         <DialogHeader className="flex items-center justify-between px-7 pt-6 pb-5 border-b border-zinc-100">
           <DialogTitle className="text-base font-semibold text-zinc-900">New deal</DialogTitle>
           <div className="flex items-center gap-2">
-            <Button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-5 text-sm disabled:opacity-50">
+            <Button onClick={handleSave} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-9 px-5 text-sm disabled:opacity-50">
               {saving ? "Saving…" : "Save deal"}
             </Button>
             <Button onClick={onClose} variant="outline" size="sm" className="inline-flex items-center justify-center h-9 w-9 rounded-xl border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50">
@@ -812,7 +814,7 @@ function AddDealModal({ onClose, onAdd, industries = [], userEmail }) {
 
         <div className="px-7 py-6 space-y-1">
           {error && (
-            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-light text-red-700">{error}</div>
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-normal text-red-700">{error}</div>
           )}
           <div className="grid grid-cols-2 gap-x-5 gap-y-5">
             <div className="col-span-2">
@@ -850,7 +852,7 @@ function AddDealModal({ onClose, onAdd, industries = [], userEmail }) {
             </div>
             <div className="col-span-2">
               <label className={labelClass}>About</label>
-              <textarea value={form.about} onChange={e => setForm(p => ({ ...p, about: e.target.value }))} rows={4} className="w-full bg-zinc-50 px-4 py-3 border border-zinc-200 rounded-xl text-sm font-light text-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900" />
+              <textarea value={form.about} onChange={e => setForm(p => ({ ...p, about: e.target.value }))} rows={4} className="w-full bg-zinc-50 px-4 py-3 border border-zinc-200 rounded-xl text-sm font-normal text-zinc-800 resize-none focus:outline-none focus:ring-2 focus:ring-zinc-900" />
             </div>
           </div>
         </div>
@@ -870,12 +872,12 @@ const KPI_ICONS = {
 // ─── KPI Card ─────────────────────────────────
 function KpiCard({ label, value, sub, icon }) {
   return (
-    <div className="bg-[#42793A] rounded-[28px] p-5 shadow-sm transition-shadow hover:shadow-md">
+    <div className="bg-[#42793A] rounded-[20px] p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase tracking-[0.06em] text-[#C3DB75] font-semibold mb-2 line-clamp-1">{label}</p>
-          <p className="text-3xl font-medium text-white tracking-tight tabular-nums">{value}</p>
-          <p className="text-xs text-[#a8d880] font-light mt-2 leading-snug line-clamp-1">{sub}</p>
+          <p className="text-xs uppercase tracking-[0.06em] text-[#C3DB75] font-semibold mb-1.5 line-clamp-1">{label}</p>
+          <p className="text-2xl font-medium text-white tracking-tight tabular-nums">{value}</p>
+          <p className="text-xs text-[#a8d880] font-normal mt-1.5 leading-snug line-clamp-1">{sub}</p>
         </div>
         <div className="ml-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-[#336030] text-white shrink-0">
           {KPI_ICONS[icon] ?? <Briefcase size={20} variant="Outline" />}
@@ -903,8 +905,8 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   const [filterSize, setFilterSize] = useState([]);
   const [filterTeaser, setFilterTeaser] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [sortField, setSortField] = useState("id");
-  const [sortDir, setSortDir] = useState("asc");
+  const [sortField, setSortField] = useState("size");
+  const [sortDir, setSortDir] = useState("desc");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [teaserView, setTeaserView] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1175,24 +1177,23 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
       {/* Nav */}
       <header className="bg-white border-b border-zinc-100 h-20 flex items-center px-7 sticky top-0 z-50">
         <div className="max-w-[1800px] mx-auto w-full flex items-center">
-        <div className="flex items-center gap-4 flex-1">
-          <img src="/logo.svg" alt="African Aspirations" className="h-12 w-auto shrink-0" />
-          <span className="hidden sm:inline text-zinc-200 shrink-0">|</span>
-          <h1 className="hidden sm:block text-2xl font-semibold text-zinc-900 tracking-tight ml-7">Business Deal Portfolio</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-200 whitespace-nowrap">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-            </span>
-            Live
+          {/* Desktop: logo + separator + title, left-aligned */}
+          <div className="hidden sm:flex items-center gap-4 flex-1">
+            <img src="/logo.svg" alt="African Aspirations" className="h-12 w-auto shrink-0" />
+            <span className="text-zinc-200 shrink-0">|</span>
+            <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight ml-7">Deal Portfolio</h1>
           </div>
+          {/* Mobile: logo centered */}
+          <div className="sm:hidden flex flex-1 justify-center">
+            <img src="/logo.svg" alt="African Aspirations" className="h-12 w-auto" />
+          </div>
+        <div className="flex items-center gap-3">
+
           <div className="flex items-center gap-2 border border-zinc-100 rounded-xl px-3 py-1.5 bg-zinc-50">
-            <div className="w-6 h-6 rounded-lg bg-[#215132] flex items-center justify-center text-white text-xs font-light shrink-0">
+            <div className="w-6 h-6 rounded-lg bg-[#215132] flex items-center justify-center text-white text-xs font-normal shrink-0">
               {userEmail[0].toUpperCase()}
             </div>
-            <span className="hidden sm:inline text-xs text-zinc-500 font-light">{userEmail}</span>
+            <span className="hidden sm:inline text-xs text-zinc-500 font-normal">{userEmail}</span>
           </div>
           <button onClick={onLogout} className="hidden sm:flex items-center gap-1.5 rounded-xl px-3 h-9 hover:bg-red-50 text-zinc-400 hover:text-red-500 transition-colors text-xs font-medium" title="Sign out">
             <Ic name="logout" size={16} />
@@ -1203,14 +1204,14 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
       </header>
 
       <div className="flex">
-        {/* Sidebar — desktop only */}
-        <aside className={`hidden md:flex shrink-0 bg-white border-r border-zinc-100 sticky top-20 h-[calc(100vh-5rem)] flex-col items-stretch px-2 py-4 gap-1 transition-all duration-200 ${sidebarCollapsed ? "w-[60px]" : "w-52"}`}>
+        {/* Sidebar — desktop only, admin only */}
+        {isAdmin && <aside className={`hidden md:flex shrink-0 bg-white border-r border-zinc-100 sticky top-20 h-[calc(100vh-5rem)] flex-col items-stretch px-2 py-4 gap-1 transition-all duration-200 ${sidebarCollapsed ? "w-[60px]" : "w-52"}`}>
           <button
             onClick={() => setView("dashboard")}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${view === "dashboard" ? "text-[#215132] bg-[#eef6ec]" : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50"}`}
           >
             <Ic name="chart" size={18} className="shrink-0" />
-            {!sidebarCollapsed && <span className="text-sm font-medium whitespace-nowrap">Deal Dashboard</span>}
+            {!sidebarCollapsed && <span className="text-sm font-medium whitespace-nowrap">Dashboard</span>}
           </button>
 
           <div className="flex-1" />
@@ -1231,7 +1232,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
           >
             <Ic name="arrowDown" size={15} className={`transition-transform duration-200 ${sidebarCollapsed ? "-rotate-90" : "rotate-90"}`} />
           </button>
-        </aside>
+        </aside>}
 
         {/* Bottom nav — mobile only */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-zinc-100 flex items-center justify-around h-16 px-4">
@@ -1240,7 +1241,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
             className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors ${view === "dashboard" ? "text-[#215132]" : "text-zinc-400"}`}
           >
             <Ic name="chart" size={22} />
-            <span className="text-[10px] font-light">Dashboard</span>
+            <span className="text-[10px] font-normal">Dashboard</span>
           </button>
           {isAdmin && (
             <button
@@ -1248,7 +1249,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
               className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors ${view === "settings" ? "text-[#215132]" : "text-zinc-400"}`}
             >
               <Ic name="settings" size={22} />
-              <span className="text-[10px] font-light">Settings</span>
+              <span className="text-[10px] font-normal">Settings</span>
             </button>
           )}
           <button
@@ -1256,7 +1257,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
             className="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-zinc-400 hover:text-red-500 transition-colors"
           >
             <Ic name="logout" size={22} />
-            <span className="text-[10px] font-light">Sign out</span>
+            <span className="text-[10px] font-normal">Sign out</span>
           </button>
         </nav>
 
@@ -1270,23 +1271,23 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
               <div className="w-12 h-12 rounded-2xl bg-zinc-100 flex items-center justify-center">
                 <Ic name="lock" size={20} className="text-zinc-400" />
               </div>
-              <p className="text-sm text-zinc-500 font-light">You don't have permission to view this page.</p>
+              <p className="text-sm text-zinc-500 font-normal">You don't have permission to view this page.</p>
             </div>
           )}
           {view === "dashboard" && (<>
         {(loading || error) && (
-          <div className={`mb-5 rounded-2xl border px-4 py-3 text-sm font-light ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+          <div className={`mb-5 rounded-2xl border px-4 py-3 text-sm font-normal ${error ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
             {loading ? 'Loading dashboard data…' : error}
           </div>
         )}
 
         {/* Filters */}
-        <div className="bg-white border border-zinc-100 rounded-[28px] px-4 md:px-6 py-4 mb-5 shadow-sm">
+        <div className="bg-white border border-zinc-100 rounded-[20px] px-4 md:px-6 py-4 mb-5 shadow-sm">
           {/* Single row on desktop: search + filters inline */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Ic name="search" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search deals…" className="h-11 w-full pl-11 text-sm font-light border-zinc-200 rounded-2xl bg-zinc-50 focus:bg-white" />
+              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search deals…" className="h-11 w-full pl-11 text-sm font-normal border-zinc-200 rounded-2xl bg-zinc-50 focus:bg-white" />
             </div>
 
             {/* Desktop filters — inline */}
@@ -1307,12 +1308,12 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 {openDropdown === "service" && (
                   <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
                     <button onClick={() => { setFilterService([]); setOpenDropdown(null); }}
-                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                      className={`w-full text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors ${filterService.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                       All services
                     </button>
                     {SERVICE_OPTIONS.map(v => (
                       <button key={v} onClick={() => toggleInList(setFilterService, v)}
-                        className={`w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50`}>
+                        className={`w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50`}>
                         <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterService.includes(v) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
                         {v}
                       </button>
@@ -1337,12 +1338,12 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 {openDropdown === "industry" && (
                   <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1 max-h-72 overflow-y-auto">
                     <button onClick={() => { setFilterIndustry([]); setOpenDropdown(null); }}
-                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                      className={`w-full text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors ${filterIndustry.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                       All sectors
                     </button>
                     {industries.map(v => (
                       <button key={v} onClick={() => toggleInList(setFilterIndustry, v)}
-                        className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                        className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
                         <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterIndustry.includes(v) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
                         {v}
                       </button>
@@ -1367,12 +1368,12 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 {openDropdown === "size" && (
                   <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
                     <button onClick={() => { setFilterSize([]); setOpenDropdown(null); }}
-                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                      className={`w-full text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors ${filterSize.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                       All sizes
                     </button>
                     {SIZE_RANGES.map(({ value, label }) => (
                       <button key={value} onClick={() => toggleInList(setFilterSize, value)}
-                        className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                        className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
                         <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterSize.includes(value) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
                         {label}
                       </button>
@@ -1383,13 +1384,13 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
 
               <button
                 onClick={() => setFilterTeaser(v => !v)}
-                className={`h-11 px-4 rounded-2xl font-light text-xs flex items-center gap-2 transition-colors border ${filterTeaser ? "bg-[#215132] text-white border-[#215132]" : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:text-zinc-700"}`}>
+                className={`h-11 px-4 rounded-2xl font-normal text-xs flex items-center gap-2 transition-colors border ${filterTeaser ? "bg-[#215132] text-white border-[#215132]" : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:text-zinc-700"}`}>
                 <Ic name="document" size={14} />
                 Has teaser
               </button>
 
               {hasFilters && (
-                <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser(false); setShowMobileFilters(false); }} className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
+                <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser(false); setShowMobileFilters(false); }} className="h-11 px-4 rounded-2xl font-normal text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
                   <Ic name="close" size={13} />
                   Clear filters
                 </button>
@@ -1415,19 +1416,19 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 <div className="relative">
                   {openDropdown === "service-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                   <button onClick={() => setOpenDropdown(o => o === "service-m" ? null : "service-m")}
-                    className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
+                    className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-normal text-zinc-700">
                     <span className="flex items-center gap-2"><Ic name="tag" size={13} className="text-zinc-400" />{filterService.length === 0 ? "All services" : filterService.length === 1 ? filterService[0] : `${filterService.length} services`}</span>
                     <Ic name="arrowDown" size={13} className="text-zinc-400" />
                   </button>
                   {openDropdown === "service-m" && (
                     <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
                       <button onClick={() => { setFilterService([]); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                        className={`w-full text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors ${filterService.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                         All services
                       </button>
                       {SERVICE_OPTIONS.map(v => (
                         <button key={v} onClick={() => toggleInList(setFilterService, v)}
-                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
                           <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterService.includes(v) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
                           {v}
                         </button>
@@ -1438,17 +1439,17 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 <div className="relative">
                   {openDropdown === "industry-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                   <button onClick={() => setOpenDropdown(o => o === "industry-m" ? null : "industry-m")}
-                    className="relative z-40 h-11 min-w-[140px] max-w-[220px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
+                    className="relative z-40 h-11 min-w-[140px] max-w-[220px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-normal text-zinc-700">
                     <span className="flex items-center gap-2 truncate"><Ic name="tag" size={13} className="text-zinc-400 shrink-0" /><span className="truncate">{filterIndustry.length === 0 ? "All sectors" : filterIndustry.length === 1 ? filterIndustry[0] : `${filterIndustry.length} sectors`}</span></span>
                     <Ic name="arrowDown" size={13} className="text-zinc-400 shrink-0" />
                   </button>
                   {openDropdown === "industry-m" && (
                     <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1 max-h-72 overflow-y-auto">
                       <button onClick={() => { setFilterIndustry([]); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>All sectors</button>
+                        className={`w-full text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors ${filterIndustry.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>All sectors</button>
                       {industries.map(v => (
                         <button key={v} onClick={() => toggleInList(setFilterIndustry, v)}
-                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
                           <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterIndustry.includes(v) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
                           {v}
                         </button>
@@ -1459,19 +1460,19 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 <div className="relative">
                   {openDropdown === "size-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                   <button onClick={() => setOpenDropdown(o => o === "size-m" ? null : "size-m")}
-                    className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
+                    className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-normal text-zinc-700">
                     <span className="flex items-center gap-2"><Ic name="money" size={13} className="text-zinc-400" />{filterSize.length === 0 ? "All sizes" : filterSize.length === 1 ? SIZE_RANGES.find(r => r.value === filterSize[0])?.label : `${filterSize.length} sizes`}</span>
                     <Ic name="arrowDown" size={13} className="text-zinc-400" />
                   </button>
                   {openDropdown === "size-m" && (
                     <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
                       <button onClick={() => { setFilterSize([]); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                        className={`w-full text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors ${filterSize.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                         All sizes
                       </button>
                       {SIZE_RANGES.map(({ value, label }) => (
                         <button key={value} onClick={() => toggleInList(setFilterSize, value)}
-                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-normal rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
                           <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterSize.includes(value) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
                           {label}
                         </button>
@@ -1480,12 +1481,12 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                   )}
                 </div>
                 <button onClick={() => setFilterTeaser(v => !v)}
-                  className={`h-11 px-4 rounded-2xl font-light text-xs flex items-center gap-2 transition-colors border ${filterTeaser ? "bg-[#215132] text-white border-[#215132]" : "bg-white text-zinc-500 border-zinc-200"}`}>
+                  className={`h-11 px-4 rounded-2xl font-normal text-xs flex items-center gap-2 transition-colors border ${filterTeaser ? "bg-[#215132] text-white border-[#215132]" : "bg-white text-zinc-500 border-zinc-200"}`}>
                   <Ic name="document" size={14} />Has teaser
                 </button>
                 {hasFilters && (
                   <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser(false); setShowMobileFilters(false); }}
-                    className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
+                    className="h-11 px-4 rounded-2xl font-normal text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
                     <Ic name="close" size={13} />Clear filters
                   </button>
                 )}
@@ -1507,7 +1508,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
           <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
             <p className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Deals <span className="text-zinc-400">· {filtered.length}</span></p>
             {perms.canCreate && (
-              <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-4 text-xs whitespace-nowrap">
+              <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-9 px-4 text-xs whitespace-nowrap">
                 <Ic name="plus" size={13} />
                 New deal
               </Button>
@@ -1542,7 +1543,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center">
                   <Ic name="search" size={18} className="text-zinc-400" />
                 </div>
-                <p className="text-sm text-zinc-400 font-light">No deals match your filters</p>
+                <p className="text-sm text-zinc-400 font-normal">No deals match your filters</p>
               </div>
             )}
           </div>
@@ -1560,7 +1561,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 {exportOpen && <div className="fixed inset-0 z-30" onClick={() => setExportOpen(false)} />}
                 <button
                   onClick={() => setExportOpen(o => !o)}
-                  className="relative z-40 inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-zinc-200 bg-zinc-50 text-xs font-light text-zinc-600 hover:bg-zinc-100 transition-colors"
+                  className="relative z-40 inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-zinc-200 bg-zinc-50 text-xs font-normal text-zinc-600 hover:bg-zinc-100 transition-colors"
                 >
                   <Ic name="document" size={13} />
                   Export
@@ -1568,11 +1569,11 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 </button>
                 {exportOpen && (
                   <div className="absolute right-0 top-11 z-50 w-44 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
-                    <button onClick={exportExcel} className="w-full text-left px-3 py-2.5 text-sm font-light rounded-xl text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
+                    <button onClick={exportExcel} className="w-full text-left px-3 py-2.5 text-sm font-normal rounded-xl text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
                       <Ic name="document" size={14} className="text-[#42793A]" />
                       Excel (.xlsx)
                     </button>
-                    <button onClick={exportPDF} className="w-full text-left px-3 py-2.5 text-sm font-light rounded-xl text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
+                    <button onClick={exportPDF} className="w-full text-left px-3 py-2.5 text-sm font-normal rounded-xl text-zinc-700 hover:bg-zinc-50 flex items-center gap-2.5">
                       <Ic name="pdf" size={14} className="text-red-500" />
                       PDF (.pdf)
                     </button>
@@ -1581,7 +1582,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
               </div>
 
               {perms.canCreate && (
-                <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-light h-9 px-4 text-xs whitespace-nowrap">
+                <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-9 px-4 text-xs whitespace-nowrap">
                   <Ic name="plus" size={13} />
                   New deal
                 </Button>
@@ -1639,8 +1640,8 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                         <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center">
                           <Ic name="search" size={18} className="text-zinc-400" />
                         </div>
-                        <p className="text-sm text-zinc-400 font-light">No deals match your filters</p>
-                        <Button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); }} variant="ghost" size="sm" className="rounded-xl font-light text-xs text-zinc-400">Clear filters</Button>
+                        <p className="text-sm text-zinc-400 font-normal">No deals match your filters</p>
+                        <Button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); }} variant="ghost" size="sm" className="rounded-xl font-normal text-xs text-zinc-400">Clear filters</Button>
                       </div>
                     </td>
                   </tr>
@@ -1659,7 +1660,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
             { label: "< $100K",     bg: "bg-[#fef8ed]" },
             { label: "TBD",         bg: "bg-white border border-zinc-200" },
           ].map(({ label, bg }) => (
-            <span key={label} className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-light">
+            <span key={label} className="flex items-center gap-1.5 text-[11px] text-zinc-400 font-normal">
               <span className={`inline-block w-3 h-3 rounded-sm ${bg}`} />
               {label}
             </span>
