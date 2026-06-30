@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 const Agentation = process.env.NODE_ENV === "development"
   ? dynamic(() => import("agentation").then(m => ({ default: m.Agentation })), { ssr: false })
   : () => null;
+const PdfViewer = dynamic(() => import("./PdfViewer"), { ssr: false });
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -291,8 +292,16 @@ function AuthScreen({ onLogin }) {
   );
 }
 
+// ─── Touch detection ─────────────────────────
+function useIsTouchDevice() {
+  const [touch, setTouch] = useState(false);
+  useEffect(() => { setTouch(window.matchMedia('(pointer: coarse)').matches); }, []);
+  return touch;
+}
+
 // ─── Teaser Viewer ───────────────────────────
 function TeaserViewer({ url, dealName, onClose }) {
+  const isTouch = useIsTouchDevice();
   useEffect(() => {
     function onKey(e) { if (e.key === "Escape") onClose(); }
     document.addEventListener("keydown", onKey);
@@ -306,13 +315,28 @@ function TeaserViewer({ url, dealName, onClose }) {
           <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 font-semibold">Deal Teaser</p>
           <h2 className="text-base font-semibold text-white mt-0.5 truncate max-w-[700px]">{dealName}</h2>
         </div>
-        <button onClick={onClose} className="flex items-center gap-2 px-4 h-10 rounded-xl bg-red-600 text-white hover:bg-red-500 transition-colors text-sm font-semibold">
-          <Ic name="arrowDown" size={16} className="rotate-90" />
-          Go back
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 h-10 rounded-xl bg-zinc-700 text-white hover:bg-zinc-600 transition-colors text-sm font-semibold"
+          >
+            <Ic name="global" size={16} />
+            Open in browser
+          </a>
+          <button onClick={onClose} className="flex items-center gap-2 px-4 h-10 rounded-xl bg-red-600 text-white hover:bg-red-500 transition-colors text-sm font-semibold">
+            <Ic name="arrowDown" size={16} className="rotate-90" />
+            Go back
+          </button>
+        </div>
       </div>
       <div className="flex-1 min-h-0 p-4">
-        <iframe src={url} className="w-full h-full rounded-xl border border-zinc-800" title="Deal Teaser" />
+        {isTouch ? (
+          <PdfViewer url={url} className="h-full rounded-xl bg-zinc-900" />
+        ) : (
+          <iframe src={url} className="w-full h-full rounded-xl border border-zinc-800" title="Deal Teaser" />
+        )}
       </div>
     </div>
   );
@@ -325,6 +349,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
   const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ ...deal });
   const [uploadError, setUploadError] = useState("");
+  const isTouch = useIsTouchDevice();
   const fileRef = useRef();
   const teaser = teasers[deal.id];
 
@@ -504,7 +529,11 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                   )}
                 </div>
               </div>
-              <iframe src={teaser.url} className="w-full rounded-xl border border-zinc-200" style={{ height: 440 }} title="Deal Teaser" />
+              {isTouch ? (
+                <PdfViewer url={teaser.url} className="h-[440px] rounded-xl border border-zinc-200 bg-white" />
+              ) : (
+                <iframe src={teaser.url} className="w-full rounded-xl border border-zinc-200" style={{ height: 440 }} title="Deal Teaser" />
+              )}
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">

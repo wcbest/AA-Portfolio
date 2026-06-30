@@ -15,6 +15,7 @@ const securityHeaders = [
       `frame-src 'self' ${SUPABASE_ORIGIN}`,
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
+      "worker-src 'self'",
       "base-uri 'self'",
       "frame-ancestors 'none'",
     ].join("; "),
@@ -24,6 +25,10 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ["iconsax-react", "agentation"],
+  webpack: (config) => {
+    config.resolve.alias.canvas = false;
+    return config;
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
