@@ -29,6 +29,7 @@ function dealPayload(input) {
   if ('ebitda' in input) payload.ebitda = input.ebitda ? Number(input.ebitda) : null
   if ('revenues' in input) payload.revenues = input.revenues ? Number(input.revenues) : null
   if ('teaserPath' in input) payload.teaser_path = input.teaserPath
+  if ('teaserIsNew' in input) payload.teaser_is_new = !!input.teaserIsNew
   return payload
 }
 

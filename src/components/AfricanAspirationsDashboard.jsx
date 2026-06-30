@@ -179,13 +179,14 @@ function sizeRowBg(size) {
 }
 
 const SIZE_RANGES = [
-  { value: "all",    label: "All sizes" },
   { value: "tbd",    label: "TBD" },
   { value: "lt100k", label: "< $100K" },
   { value: "100k",   label: "$100K – $1M" },
   { value: "1m",     label: "$1M – $5M" },
   { value: "5m",     label: "$5M+" },
 ];
+
+const SERVICE_OPTIONS = ["Funding", "Brokerage", "Consulting"];
 
 function normalizeDeal(d) {
   return {
@@ -196,7 +197,8 @@ function normalizeDeal(d) {
     industry:   d.industry   ?? "",
     ebitda:     d.ebitda     ?? null,
     revenues:   d.revenues   ?? null,
-    teaserPath: d.teaserPath ?? d.teaser_path ?? null,
+    teaserPath:  d.teaserPath  ?? d.teaser_path  ?? null,
+    teaserIsNew: d.teaserIsNew ?? d.teaser_is_new ?? true,
   };
 }
 
@@ -363,7 +365,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
     onUpload(deal.id, f);
   }
 
-  function saveEdit() { onUpdate(form); setEditing(false); }
+  function saveEdit() { onUpdate({ ...form, teaserIsNew: deal.teaserIsNew }); setEditing(false); }
 
   async function handleDelete() {
     setDeleting(true);
@@ -412,7 +414,7 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                 )}
               </>
             )}
-            <Button onClick={onClose} variant="outline" size="sm" className="inline-flex items-center justify-center h-9 w-9 rounded-xl border-zinc-200 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-50">
+            <Button onClick={onClose} variant="outline" size="sm" className="inline-flex items-center justify-center h-9 w-9 rounded-xl border-zinc-200 text-red-500 hover:text-red-600 hover:bg-red-50">
               <Ic name="close" size={16} />
             </Button>
           </div>
@@ -515,6 +517,14 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                   {teaser.name}
                 </div>
                 <div className="flex items-center gap-2">
+                  {perms.isAdmin && (
+                    <button
+                      onClick={() => onUpdate({ ...deal, teaserIsNew: !deal.teaserIsNew })}
+                      className={`inline-flex items-center h-8 px-3 rounded-xl text-xs font-medium transition-colors ${deal.teaserIsNew !== false ? "bg-[#eef6ec] text-[#215132] hover:bg-[#d9edd4]" : "bg-amber-50 text-amber-700 hover:bg-amber-100"}`}
+                    >
+                      {deal.teaserIsNew !== false ? "● New" : "● Old"}
+                    </button>
+                  )}
                   {perms.canUpdate && (
                     <Button onClick={() => fileRef.current.click()} variant="outline" size="sm" className="inline-flex items-center gap-1.5 rounded-xl border-zinc-200 font-light h-8 text-xs">
                       <Ic name="upload" size={13} />
@@ -884,12 +894,13 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   const [approvedEmails, setApprovedEmails] = useState([]);
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [view, setView] = useState("dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAddDeal, setShowAddDeal] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [filterService, setFilterService] = useState("all");
-  const [filterIndustry, setFilterIndustry] = useState("all");
-  const [filterSize, setFilterSize] = useState("all");
+  const [filterService, setFilterService] = useState([]);
+  const [filterIndustry, setFilterIndustry] = useState([]);
+  const [filterSize, setFilterSize] = useState([]);
   const [filterTeaser, setFilterTeaser] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [sortField, setSortField] = useState("id");
@@ -1108,15 +1119,19 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
       .filter(d => {
         const q = search.toLowerCase();
         if (q && !d.entity.toLowerCase().includes(q) && !d.codeName.toLowerCase().includes(q) && !(d.about || "").toLowerCase().includes(q) && !(d.industry || "").toLowerCase().includes(q)) return false;
-        if (filterService !== "all" && d.service !== filterService) return false;
-        if (filterIndustry !== "all" && d.industry !== filterIndustry) return false;
-        if (filterSize !== "all") {
+        if (filterService.length && !filterService.includes(d.service)) return false;
+        if (filterIndustry.length && !filterIndustry.includes(d.industry)) return false;
+        if (filterSize.length) {
           const s = d.size || 0;
-          if (filterSize === "tbd"    && s !== 0) return false;
-          if (filterSize === "lt100k" && !(s > 0 && s < 100000)) return false;
-          if (filterSize === "100k"   && !(s >= 100000 && s < 1000000)) return false;
-          if (filterSize === "1m"     && !(s >= 1000000 && s < 5000000)) return false;
-          if (filterSize === "5m"     && !(s >= 5000000)) return false;
+          const matchesSize = filterSize.some(val => {
+            if (val === "tbd")    return s === 0;
+            if (val === "lt100k") return s > 0 && s < 100000;
+            if (val === "100k")   return s >= 100000 && s < 1000000;
+            if (val === "1m")     return s >= 1000000 && s < 5000000;
+            if (val === "5m")     return s >= 5000000;
+            return false;
+          });
+          if (!matchesSize) return false;
         }
         if (filterTeaser && !teasers[d.id]) return false;
         return true;
@@ -1141,6 +1156,10 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
     else { setSortField(field); setSortDir("asc"); }
   }
 
+  function toggleInList(setter, value) {
+    setter(prev => prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]);
+  }
+
   const SortIcon = ({ field }) => {
     if (sortField !== field) return <Ic name="sortAsc" size={13} className="text-zinc-400" />;
     return sortDir === "asc"
@@ -1148,8 +1167,8 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
       : <Ic name="arrowDown" size={13} className="text-zinc-600" />;
   };
 
-  const hasFilters = search || filterService !== "all" || filterIndustry !== "all" || filterSize !== "all" || filterTeaser;
-  const activeFilterCount = [filterService !== "all", filterIndustry !== "all", filterSize !== "all", filterTeaser].filter(Boolean).length;
+  const hasFilters = search || filterService.length > 0 || filterIndustry.length > 0 || filterSize.length > 0 || filterTeaser;
+  const activeFilterCount = [filterService.length > 0, filterIndustry.length > 0, filterSize.length > 0, filterTeaser].filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-zinc-100" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
@@ -1159,7 +1178,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
         <div className="flex items-center gap-4 flex-1">
           <img src="/logo.svg" alt="African Aspirations" className="h-12 w-auto shrink-0" />
           <span className="hidden sm:inline text-zinc-200 shrink-0">|</span>
-          <h1 className="hidden sm:block text-2xl font-semibold text-zinc-900 tracking-tight">Business Deal Portfolio</h1>
+          <h1 className="hidden sm:block text-2xl font-semibold text-zinc-900 tracking-tight ml-7">Business Deal Portfolio</h1>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 border border-red-200 whitespace-nowrap">
@@ -1185,13 +1204,13 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
 
       <div className="flex">
         {/* Sidebar — desktop only */}
-        <aside className="hidden md:flex w-24 shrink-0 bg-white border-r border-zinc-100 sticky top-20 h-[calc(100vh-5rem)] flex-col items-center py-5 gap-2">
+        <aside className={`hidden md:flex shrink-0 bg-white border-r border-zinc-100 sticky top-20 h-[calc(100vh-5rem)] flex-col items-stretch px-2 py-4 gap-1 transition-all duration-200 ${sidebarCollapsed ? "w-[60px]" : "w-52"}`}>
           <button
             onClick={() => setView("dashboard")}
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${view === "dashboard" ? "bg-[#215132] text-white" : "hover:bg-zinc-50 text-zinc-400 hover:text-zinc-700"}`}
-            title="Dashboard"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${view === "dashboard" ? "text-[#215132] bg-[#eef6ec]" : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50"}`}
           >
-            <Ic name="chart" size={20} />
+            <Ic name="chart" size={18} className="shrink-0" />
+            {!sidebarCollapsed && <span className="text-sm font-medium whitespace-nowrap">Deal Dashboard</span>}
           </button>
 
           <div className="flex-1" />
@@ -1199,12 +1218,19 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
           {isAdmin && (
             <button
               onClick={() => setView("settings")}
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${view === "settings" ? "bg-[#215132] text-white" : "hover:bg-zinc-50 text-zinc-400 hover:text-zinc-700"}`}
-              title="Settings"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${view === "settings" ? "text-[#215132] bg-[#eef6ec]" : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50"}`}
             >
-              <Ic name="settings" size={20} />
+              <Ic name="settings" size={18} className="shrink-0" />
+              {!sidebarCollapsed && <span className="text-sm font-medium whitespace-nowrap">Settings</span>}
             </button>
           )}
+
+          <button
+            onClick={() => setSidebarCollapsed(c => !c)}
+            className="flex items-center justify-center w-full mt-1 py-2 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"
+          >
+            <Ic name="arrowDown" size={15} className={`transition-transform duration-200 ${sidebarCollapsed ? "-rotate-90" : "rotate-90"}`} />
+          </button>
         </aside>
 
         {/* Bottom nav — mobile only */}
@@ -1274,16 +1300,21 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 >
                   <span className="flex items-center gap-2">
                     <Ic name="tag" size={13} className="text-zinc-400" />
-                    {filterService === "all" ? "All services" : filterService}
+                    {filterService.length === 0 ? "All services" : filterService.length === 1 ? filterService[0] : `${filterService.length} services`}
                   </span>
                   <Ic name="arrowDown" size={13} className="text-zinc-400" />
                 </button>
                 {openDropdown === "service" && (
                   <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
-                    {["all", "Funding", "Brokerage", "Consulting"].map(v => (
-                      <button key={v} onClick={() => { setFilterService(v); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
-                        {v === "all" ? "All services" : v}
+                    <button onClick={() => { setFilterService([]); setOpenDropdown(null); }}
+                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                      All services
+                    </button>
+                    {SERVICE_OPTIONS.map(v => (
+                      <button key={v} onClick={() => toggleInList(setFilterService, v)}
+                        className={`w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50`}>
+                        <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterService.includes(v) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
+                        {v}
                       </button>
                     ))}
                   </div>
@@ -1299,19 +1330,20 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 >
                   <span className="flex items-center gap-2 truncate">
                     <Ic name="tag" size={13} className="text-zinc-400 shrink-0" />
-                    <span className="truncate">{filterIndustry === "all" ? "All sectors" : filterIndustry}</span>
+                    <span className="truncate">{filterIndustry.length === 0 ? "All sectors" : filterIndustry.length === 1 ? filterIndustry[0] : `${filterIndustry.length} sectors`}</span>
                   </span>
                   <Ic name="arrowDown" size={13} className="text-zinc-400 shrink-0" />
                 </button>
                 {openDropdown === "industry" && (
                   <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1 max-h-72 overflow-y-auto">
-                    <button onClick={() => { setFilterIndustry("all"); setOpenDropdown(null); }}
-                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === "all" ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                    <button onClick={() => { setFilterIndustry([]); setOpenDropdown(null); }}
+                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
                       All sectors
                     </button>
                     {industries.map(v => (
-                      <button key={v} onClick={() => { setFilterIndustry(v); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                      <button key={v} onClick={() => toggleInList(setFilterIndustry, v)}
+                        className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                        <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterIndustry.includes(v) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
                         {v}
                       </button>
                     ))}
@@ -1328,15 +1360,20 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 >
                   <span className="flex items-center gap-2">
                     <Ic name="money" size={13} className="text-zinc-400" />
-                    {SIZE_RANGES.find(r => r.value === filterSize)?.label ?? "All sizes"}
+                    {filterSize.length === 0 ? "All sizes" : filterSize.length === 1 ? SIZE_RANGES.find(r => r.value === filterSize[0])?.label : `${filterSize.length} sizes`}
                   </span>
                   <Ic name="arrowDown" size={13} className="text-zinc-400" />
                 </button>
                 {openDropdown === "size" && (
                   <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
+                    <button onClick={() => { setFilterSize([]); setOpenDropdown(null); }}
+                      className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                      All sizes
+                    </button>
                     {SIZE_RANGES.map(({ value, label }) => (
-                      <button key={value} onClick={() => { setFilterSize(value); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize === value ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                      <button key={value} onClick={() => toggleInList(setFilterSize, value)}
+                        className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                        <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterSize.includes(value) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
                         {label}
                       </button>
                     ))}
@@ -1352,7 +1389,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
               </button>
 
               {hasFilters && (
-                <button onClick={() => { setSearch(""); setFilterService("all"); setFilterIndustry("all"); setFilterSize("all"); setFilterTeaser(false); setShowMobileFilters(false); }} className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
+                <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser(false); setShowMobileFilters(false); }} className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
                   <Ic name="close" size={13} />
                   Clear filters
                 </button>
@@ -1379,15 +1416,20 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                   {openDropdown === "service-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                   <button onClick={() => setOpenDropdown(o => o === "service-m" ? null : "service-m")}
                     className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
-                    <span className="flex items-center gap-2"><Ic name="tag" size={13} className="text-zinc-400" />{filterService === "all" ? "All services" : filterService}</span>
+                    <span className="flex items-center gap-2"><Ic name="tag" size={13} className="text-zinc-400" />{filterService.length === 0 ? "All services" : filterService.length === 1 ? filterService[0] : `${filterService.length} services`}</span>
                     <Ic name="arrowDown" size={13} className="text-zinc-400" />
                   </button>
                   {openDropdown === "service-m" && (
                     <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
-                      {["all", "Funding", "Brokerage", "Consulting"].map(v => (
-                        <button key={v} onClick={() => { setFilterService(v); setOpenDropdown(null); }}
-                          className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
-                          {v === "all" ? "All services" : v}
+                      <button onClick={() => { setFilterService([]); setOpenDropdown(null); }}
+                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterService.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                        All services
+                      </button>
+                      {SERVICE_OPTIONS.map(v => (
+                        <button key={v} onClick={() => toggleInList(setFilterService, v)}
+                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                          <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterService.includes(v) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
+                          {v}
                         </button>
                       ))}
                     </div>
@@ -1397,16 +1439,19 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                   {openDropdown === "industry-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                   <button onClick={() => setOpenDropdown(o => o === "industry-m" ? null : "industry-m")}
                     className="relative z-40 h-11 min-w-[140px] max-w-[220px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
-                    <span className="flex items-center gap-2 truncate"><Ic name="tag" size={13} className="text-zinc-400 shrink-0" /><span className="truncate">{filterIndustry === "all" ? "All sectors" : filterIndustry}</span></span>
+                    <span className="flex items-center gap-2 truncate"><Ic name="tag" size={13} className="text-zinc-400 shrink-0" /><span className="truncate">{filterIndustry.length === 0 ? "All sectors" : filterIndustry.length === 1 ? filterIndustry[0] : `${filterIndustry.length} sectors`}</span></span>
                     <Ic name="arrowDown" size={13} className="text-zinc-400 shrink-0" />
                   </button>
                   {openDropdown === "industry-m" && (
                     <div className="absolute left-0 top-12 z-50 w-72 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1 max-h-72 overflow-y-auto">
-                      <button onClick={() => { setFilterIndustry("all"); setOpenDropdown(null); }}
-                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === "all" ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>All sectors</button>
+                      <button onClick={() => { setFilterIndustry([]); setOpenDropdown(null); }}
+                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>All sectors</button>
                       {industries.map(v => (
-                        <button key={v} onClick={() => { setFilterIndustry(v); setOpenDropdown(null); }}
-                          className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterIndustry === v ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>{v}</button>
+                        <button key={v} onClick={() => toggleInList(setFilterIndustry, v)}
+                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                          <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterIndustry.includes(v) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
+                          {v}
+                        </button>
                       ))}
                     </div>
                   )}
@@ -1415,14 +1460,21 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                   {openDropdown === "size-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
                   <button onClick={() => setOpenDropdown(o => o === "size-m" ? null : "size-m")}
                     className="relative z-40 h-11 min-w-[140px] flex items-center justify-between gap-2 px-4 rounded-2xl border border-zinc-200 bg-zinc-50 text-sm font-light text-zinc-700">
-                    <span className="flex items-center gap-2"><Ic name="money" size={13} className="text-zinc-400" />{SIZE_RANGES.find(r => r.value === filterSize)?.label ?? "All sizes"}</span>
+                    <span className="flex items-center gap-2"><Ic name="money" size={13} className="text-zinc-400" />{filterSize.length === 0 ? "All sizes" : filterSize.length === 1 ? SIZE_RANGES.find(r => r.value === filterSize[0])?.label : `${filterSize.length} sizes`}</span>
                     <Ic name="arrowDown" size={13} className="text-zinc-400" />
                   </button>
                   {openDropdown === "size-m" && (
                     <div className="absolute left-0 top-12 z-50 w-48 rounded-2xl border border-zinc-200 bg-white shadow-lg p-1">
+                      <button onClick={() => { setFilterSize([]); setOpenDropdown(null); }}
+                        className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize.length === 0 ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>
+                        All sizes
+                      </button>
                       {SIZE_RANGES.map(({ value, label }) => (
-                        <button key={value} onClick={() => { setFilterSize(value); setOpenDropdown(null); }}
-                          className={`w-full text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors ${filterSize === value ? "bg-[#215132] text-white" : "text-zinc-700 hover:bg-zinc-50"}`}>{label}</button>
+                        <button key={value} onClick={() => toggleInList(setFilterSize, value)}
+                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 text-sm font-light rounded-xl transition-colors text-zinc-700 hover:bg-zinc-50">
+                          <span className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 text-[10px] font-bold transition-colors ${filterSize.includes(value) ? "bg-[#215132] border-[#215132] text-white" : "border-zinc-300 text-transparent"}`}>✓</span>
+                          {label}
+                        </button>
                       ))}
                     </div>
                   )}
@@ -1432,7 +1484,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                   <Ic name="document" size={14} />Has teaser
                 </button>
                 {hasFilters && (
-                  <button onClick={() => { setSearch(""); setFilterService("all"); setFilterIndustry("all"); setFilterSize("all"); setFilterTeaser(false); setShowMobileFilters(false); }}
+                  <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser(false); setShowMobileFilters(false); }}
                     className="h-11 px-4 rounded-2xl font-light text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
                     <Ic name="close" size={13} />Clear filters
                   </button>
@@ -1469,14 +1521,17 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                   {deal.codeName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="text-sm text-zinc-900 font-medium truncate">{deal.codeName}</span>
-                    {teasers[deal.id] && <Ic name="document" size={13} className="text-[#42793A] shrink-0" />}
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs px-2 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
-                    {deal.industry && <span className="text-xs text-zinc-600 truncate">{deal.industry}</span>}
-                    {deal.size && <span className="text-xs text-zinc-700 tabular-nums ml-auto">{fmtMoney(deal.size)}</span>}
+                  <span className="text-sm text-zinc-900 font-medium truncate block mb-1.5">{deal.codeName}</span>
+                  <div className="flex items-center gap-2">
+                    {teasers[deal.id] && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setTeaserView({ url: teasers[deal.id].url, dealName: deal.codeName }); }}
+                        className={`inline-flex items-center gap-1 px-2 h-5 rounded-md text-white text-[11px] font-medium whitespace-nowrap ${deal.teaserIsNew !== false ? "bg-[#42793A]" : "bg-amber-500"}`}
+                      >
+                        See teaser
+                      </button>
+                    )}
+                    {deal.size && <span className="text-xs text-zinc-700 tabular-nums">{deal.size ? `$${Number(deal.size).toLocaleString()}` : "TBD"}</span>}
                   </div>
                 </div>
                 <Ic name="arrowDown" size={15} className="text-zinc-400 -rotate-90 shrink-0 ml-1" />
@@ -1559,7 +1614,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                         {teasers[deal.id] && (
                           <button
                             onClick={(e) => { e.stopPropagation(); setTeaserView({ url: teasers[deal.id].url, dealName: deal.codeName }); }}
-                            className="shrink-0 inline-flex items-center gap-1.5 px-2.5 h-6 rounded-lg bg-[#42793A] text-white text-[11px] font-medium whitespace-nowrap"
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 h-6 rounded-lg text-white text-[11px] font-medium whitespace-nowrap ${deal.teaserIsNew !== false ? "bg-[#42793A]" : "bg-amber-500"}`}
                           >
                             See teaser
                             <Ic name="arrowDown" size={11} className="-rotate-90" />
@@ -1567,14 +1622,14 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                         )}
                       </div>
                     </td>
-                    {isAdmin && <td className="px-4 py-3.5 text-sm text-zinc-900 whitespace-nowrap">{deal.entity}</td>}
-                    <td className="px-4 py-3.5 text-sm text-zinc-700 whitespace-nowrap">{deal.industry}</td>
+                    {isAdmin && <td className="px-4 py-3.5 text-sm font-normal text-zinc-900 whitespace-nowrap">{deal.entity}</td>}
+                    <td className="px-4 py-3.5 text-sm font-normal text-zinc-900 whitespace-nowrap">{deal.industry}</td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       <span className={`text-sm px-2.5 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
                     </td>
-                    <td className={`px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap ${sizeRowBg(deal.size)}`}>{fmtMoney(deal.size)}</td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap">{fmtMoney(deal.revenues)}</td>
-                    <td className="px-4 py-3.5 text-sm text-zinc-900 tabular-nums whitespace-nowrap">{fmtMoney(deal.ebitda)}</td>
+                    <td className={`px-4 py-3.5 text-sm font-normal text-zinc-900 tabular-nums whitespace-nowrap ${sizeRowBg(deal.size)}`}>{deal.size ? `$${Number(deal.size).toLocaleString()}` : "TBD"}</td>
+                    <td className="px-4 py-3.5 text-sm font-normal text-zinc-900 tabular-nums whitespace-nowrap">{deal.revenues ? `$${Number(deal.revenues).toLocaleString()}` : "—"}</td>
+                    <td className="px-4 py-3.5 text-sm font-normal text-zinc-900 tabular-nums whitespace-nowrap">{deal.ebitda ? `$${Number(deal.ebitda).toLocaleString()}` : "—"}</td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
@@ -1585,7 +1640,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                           <Ic name="search" size={18} className="text-zinc-400" />
                         </div>
                         <p className="text-sm text-zinc-400 font-light">No deals match your filters</p>
-                        <Button onClick={() => { setSearch(""); setFilterService("all"); setFilterIndustry("all"); setFilterSize("all"); }} variant="ghost" size="sm" className="rounded-xl font-light text-xs text-zinc-400">Clear filters</Button>
+                        <Button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); }} variant="ghost" size="sm" className="rounded-xl font-light text-xs text-zinc-400">Clear filters</Button>
                       </div>
                     </td>
                   </tr>
