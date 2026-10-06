@@ -188,6 +188,10 @@ const SIZE_RANGES = [
 
 const SERVICE_OPTIONS = ["Funding", "Brokerage", "Consulting"];
 
+function codeSortKey(name) {
+  return String(name ?? "").replace(/^project\s+/i, "").toLowerCase();
+}
+
 function normalizeDeal(d) {
   return {
     ...d,
@@ -295,6 +299,18 @@ function AuthScreen({ onLogin }) {
 }
 
 // ─── Touch detection ─────────────────────────
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const update = () => setMatches(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, [query]);
+  return matches;
+}
+
 function useIsTouchDevice() {
   const [touch, setTouch] = useState(false);
   useEffect(() => { setTouch(window.matchMedia('(pointer: coarse)').matches); }, []);
@@ -322,12 +338,13 @@ function TeaserViewer({ url, dealName, onClose }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 h-10 rounded-xl bg-zinc-700 text-white hover:bg-zinc-600 transition-colors text-sm font-semibold"
+            className="flex items-center gap-2 px-3 sm:px-4 h-10 rounded-xl bg-zinc-700 text-white hover:bg-zinc-600 transition-colors text-sm font-semibold whitespace-nowrap"
           >
             <Ic name="global" size={16} />
-            Open in browser
+            <span className="hidden sm:inline">Open in browser</span>
+            <span className="sm:hidden">Open</span>
           </a>
-          <button onClick={onClose} className="flex items-center gap-2 px-4 h-10 rounded-xl bg-red-600 text-white hover:bg-red-500 transition-colors text-sm font-semibold">
+          <button onClick={onClose} className="flex items-center gap-2 px-3 sm:px-4 h-10 rounded-xl bg-red-600 text-white hover:bg-red-500 transition-colors text-sm font-semibold whitespace-nowrap">
             <Ic name="arrowDown" size={16} className="rotate-90" />
             Go back
           </button>
@@ -348,6 +365,7 @@ function TeaserViewer({ url, dealName, onClose }) {
 function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClose, onUpdate, onDelete, industries = [] }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [fullTeaser, setFullTeaser] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ ...deal });
   const [uploadError, setUploadError] = useState("");
@@ -379,9 +397,6 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
       <DialogContent className="fixed inset-y-0 right-0 z-50 flex w-full md:max-w-3xl flex-col overflow-y-auto bg-white shadow-2xl" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
         <DialogHeader className="flex items-center justify-between px-7 pt-6 pb-0 border-b border-zinc-200">
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className={`text-xs px-2.5 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
-            </div>
             <DialogTitle className="text-lg font-semibold text-zinc-900">{deal.codeName}</DialogTitle>
           </div>
           <div className="flex items-center gap-2">
@@ -539,6 +554,12 @@ function DealModal({ deal, perms = {}, teasers, onUpload, onRemoveTeaser, onClos
                   )}
                 </div>
               </div>
+              <button type="button" onClick={() => setFullTeaser(true)}
+                className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200 bg-white text-sm font-normal text-zinc-700 hover:bg-zinc-50 transition-colors">
+                <Ic name="document" size={14} />
+                View full teaser
+              </button>
+              {fullTeaser && <TeaserViewer url={teaser.url} dealName={deal.codeName} onClose={() => setFullTeaser(false)} />}
               {isImagePath(teaser.name) ? (
                 <img src={teaser.url} alt="Deal teaser" className="w-full rounded-xl border border-zinc-200 object-contain bg-zinc-50" style={{ maxHeight: 440 }} />
               ) : isTouch ? (
@@ -773,7 +794,9 @@ function AdminPanel({ deals, approvedEmails, setApprovedEmails }) {
 }
 
 // ─── Add Deal Modal ───────────────────────────
-const EMPTY_NEW_DEAL = { entity: "", codeName: "", service: "Funding", about: "", industry: "", size: "", ebitda: "", revenues: "" };
+const TEASER_FILTER_OPTIONS = [["all", "All"], ["with", "Has teaser"], ["without", "No teaser"]];
+
+const EMPTY_NEW_DEAL ={ entity: "", codeName: "", service: "Funding", about: "", industry: "", size: "", ebitda: "", revenues: "" };
 
 function AddDealModal({ onClose, onAdd, industries = [], userEmail }) {
   const [form, setForm] = useState(EMPTY_NEW_DEAL);
@@ -870,14 +893,17 @@ const KPI_ICONS = {
 };
 
 // ─── KPI Card ─────────────────────────────────
-function KpiCard({ label, value, sub, icon }) {
+function KpiCard({ label, shortLabel, value, sub, icon }) {
   return (
     <div className="bg-[#42793A] rounded-[20px] p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-xs uppercase tracking-[0.06em] text-[#C3DB75] font-semibold mb-1.5 line-clamp-1">{label}</p>
+          <p className="text-xs uppercase tracking-[0.06em] text-[#C3DB75] font-semibold mb-1.5 line-clamp-1">
+            <span className="sm:hidden">{shortLabel ?? label}</span>
+            <span className="hidden sm:inline">{label}</span>
+          </p>
           <p className="text-2xl font-medium text-white tracking-tight tabular-nums">{value}</p>
-          <p className="text-xs text-[#a8d880] font-normal mt-1.5 leading-snug line-clamp-1">{sub}</p>
+          <p className="text-[11px] text-[#a8d880]/75 font-normal mt-1.5 leading-snug line-clamp-2">{sub}</p>
         </div>
         <div className="ml-auto flex h-9 w-9 items-center justify-center rounded-2xl bg-[#336030] text-white shrink-0">
           {KPI_ICONS[icon] ?? <Briefcase size={20} variant="Outline" />}
@@ -897,16 +923,22 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
   const [selectedDeal, setSelectedDeal] = useState(null);
   const [view, setView] = useState("dashboard");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const isWide = useMediaQuery("(min-width: 1280px)");
+  const railCollapsed = sidebarCollapsed || !isWide;
+  const is1440 = useMediaQuery("(min-width: 1440px)");
+  const [financialsOverride, setFinancialsOverride] = useState(null);
+  const financialsVisible = financialsOverride ?? is1440;
+  const [accountOpen, setAccountOpen] = useState(false);
   const [showAddDeal, setShowAddDeal] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterService, setFilterService] = useState([]);
   const [filterIndustry, setFilterIndustry] = useState([]);
   const [filterSize, setFilterSize] = useState([]);
-  const [filterTeaser, setFilterTeaser] = useState(false);
+  const [filterTeaser, setFilterTeaser] = useState("all");
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [sortField, setSortField] = useState("size");
-  const [sortDir, setSortDir] = useState("desc");
+  const [sortField, setSortField] = useState("codeName");
+  const [sortDir, setSortDir] = useState("asc");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [teaserView, setTeaserView] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1135,12 +1167,14 @@ function Dashboard({ userEmail, userRole = "viewer", onLogout }) {
           });
           if (!matchesSize) return false;
         }
-        if (filterTeaser && !teasers[d.id]) return false;
+        if (filterTeaser === "with" && !teasers[d.id]) return false;
+        if (filterTeaser === "without" && teasers[d.id]) return false;
         return true;
       })
       .sort((a, b) => {
         let av = a[sortField] ?? (["size","ebitda","revenues"].includes(sortField) ? -1 : "");
         let bv = b[sortField] ?? (["size","ebitda","revenues"].includes(sortField) ? -1 : "");
+        if (sortField === "codeName") { av = codeSortKey(av); bv = codeSortKey(bv); }
         if (!["size","ebitda","revenues"].includes(sortField)) { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
         if (av < bv) return sortDir === "asc" ? -1 : 1;
         if (av > bv) return sortDir === "asc" ? 1 : -1;
@@ -1169,14 +1203,14 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
       : <Ic name="arrowDown" size={13} className="text-zinc-600" />;
   };
 
-  const hasFilters = search || filterService.length > 0 || filterIndustry.length > 0 || filterSize.length > 0 || filterTeaser;
-  const activeFilterCount = [filterService.length > 0, filterIndustry.length > 0, filterSize.length > 0, filterTeaser].filter(Boolean).length;
+  const hasFilters = search || filterService.length > 0 || filterIndustry.length > 0 || filterSize.length > 0 || filterTeaser !== "all";
+  const activeFilterCount = [filterService.length > 0, filterIndustry.length > 0, filterSize.length > 0, filterTeaser !== "all"].filter(Boolean).length;
 
   return (
     <div className="min-h-screen bg-zinc-100" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 300 }}>
       {/* Nav */}
       <header className="bg-white border-b border-zinc-100 h-20 flex items-center px-7 sticky top-0 z-50">
-        <div className="max-w-[1800px] mx-auto w-full flex items-center">
+        <div className="relative max-w-[1800px] mx-auto w-full flex items-center">
           {/* Desktop: logo + separator + title, left-aligned */}
           <div className="hidden sm:flex items-center gap-4 flex-1">
             <img src="/logo.svg" alt="African Aspirations" className="h-12 w-auto shrink-0" />
@@ -1184,12 +1218,30 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
             <h1 className="text-2xl font-semibold text-zinc-900 tracking-tight ml-7">Deal Portfolio</h1>
           </div>
           {/* Mobile: logo centered */}
-          <div className="sm:hidden flex flex-1 justify-center">
-            <img src="/logo.svg" alt="African Aspirations" className="h-12 w-auto" />
+          <div className="sm:hidden flex flex-1 items-center">
+            <img src="/logo.svg" alt="African Aspirations" className="h-10 w-auto shrink-0" />
+            <span className="absolute left-1/2 -translate-x-1/2 text-base font-semibold text-zinc-900 tracking-tight whitespace-nowrap">Deal Portfolio</span>
           </div>
         <div className="flex items-center gap-3">
 
-          <div className="flex items-center gap-2 border border-zinc-100 rounded-xl px-3 py-1.5 bg-zinc-50">
+          <div className="sm:hidden relative">
+            <button onClick={() => setAccountOpen(o => !o)} className="h-11 w-11 flex items-center justify-center rounded-2xl bg-[#215132] text-white text-sm font-normal">
+              {userEmail[0].toUpperCase()}
+            </button>
+            {accountOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setAccountOpen(false)} />
+                <div className="absolute right-0 top-12 z-50 w-56 rounded-2xl border border-zinc-200 bg-white shadow-lg p-2">
+                  <p className="px-3 py-2 text-xs text-zinc-500 truncate">{userEmail}</p>
+                  <button onClick={onLogout} className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-red-600 hover:bg-red-50">
+                    <Ic name="logout" size={16} />
+                    Sign out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+          <div className="hidden sm:flex items-center gap-2 border border-zinc-100 rounded-xl px-3 py-1.5 bg-zinc-50">
             <div className="w-6 h-6 rounded-lg bg-[#215132] flex items-center justify-center text-white text-xs font-normal shrink-0">
               {userEmail[0].toUpperCase()}
             </div>
@@ -1205,13 +1257,13 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
 
       <div className="flex">
         {/* Sidebar — desktop only, admin only */}
-        {isAdmin && <aside className={`hidden md:flex shrink-0 bg-white border-r border-zinc-100 sticky top-20 h-[calc(100vh-5rem)] flex-col items-stretch px-2 py-4 gap-1 transition-all duration-200 ${sidebarCollapsed ? "w-[60px]" : "w-52"}`}>
+        {isAdmin && <aside className={`hidden md:flex shrink-0 bg-white border-r border-zinc-100 sticky top-20 h-[calc(100vh-5rem)] flex-col items-stretch px-2 py-4 gap-1 transition-all duration-200 ${railCollapsed ? "w-[60px]" : "w-52"}`}>
           <button
             onClick={() => setView("dashboard")}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${view === "dashboard" ? "text-[#215132] bg-[#eef6ec]" : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50"}`}
           >
             <Ic name="chart" size={18} className="shrink-0" />
-            {!sidebarCollapsed && <span className="text-sm font-medium whitespace-nowrap">Dashboard</span>}
+            {!railCollapsed && <span className="text-sm font-medium whitespace-nowrap">Dashboard</span>}
           </button>
 
           <div className="flex-1" />
@@ -1222,20 +1274,20 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${view === "settings" ? "text-[#215132] bg-[#eef6ec]" : "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50"}`}
             >
               <Ic name="settings" size={18} className="shrink-0" />
-              {!sidebarCollapsed && <span className="text-sm font-medium whitespace-nowrap">Settings</span>}
+              {!railCollapsed && <span className="text-sm font-medium whitespace-nowrap">Settings</span>}
             </button>
           )}
 
           <button
             onClick={() => setSidebarCollapsed(c => !c)}
-            className="flex items-center justify-center w-full mt-1 py-2 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"
+            className="hidden xl:flex items-center justify-center w-full mt-1 py-2 rounded-xl text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 transition-colors"
           >
-            <Ic name="arrowDown" size={15} className={`transition-transform duration-200 ${sidebarCollapsed ? "-rotate-90" : "rotate-90"}`} />
+            <Ic name="arrowDown" size={15} className={`transition-transform duration-200 ${railCollapsed ? "-rotate-90" : "rotate-90"}`} />
           </button>
         </aside>}
 
         {/* Bottom nav — mobile only */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-zinc-100 flex items-center justify-around h-16 px-4">
+        {isAdmin && <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-zinc-100 flex items-center justify-around h-16 px-4">
           <button
             onClick={() => setView("dashboard")}
             className={`flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-colors ${view === "dashboard" ? "text-[#215132]" : "text-zinc-400"}`}
@@ -1252,16 +1304,9 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
               <span className="text-[10px] font-normal">Settings</span>
             </button>
           )}
-          <button
-            onClick={onLogout}
-            className="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-zinc-400 hover:text-red-500 transition-colors"
-          >
-            <Ic name="logout" size={22} />
-            <span className="text-[10px] font-normal">Sign out</span>
-          </button>
-        </nav>
+        </nav>}
 
-        <main className="flex-1 min-w-0 px-4 py-5 pb-24 md:px-7 md:py-8 md:pb-8">
+        <main className={`flex-1 min-w-0 px-4 py-5 ${isAdmin ? "pb-24" : "pb-8"} md:px-7 md:py-8 md:pb-8`}>
           <div className="max-w-[1800px] mx-auto">
           {view === "settings" && isAdmin && (
             <AdminPanel deals={deals} approvedEmails={approvedEmails} setApprovedEmails={setApprovedEmails} />
@@ -1291,7 +1336,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
             </div>
 
             {/* Desktop filters — inline */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden xl:flex items-center gap-2">
               {/* Service filter */}
               <div className="relative">
                 {openDropdown === "service" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
@@ -1382,15 +1427,17 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                 )}
               </div>
 
-              <button
-                onClick={() => setFilterTeaser(v => !v)}
-                className={`h-11 px-4 rounded-2xl font-normal text-xs flex items-center gap-2 transition-colors border ${filterTeaser ? "bg-[#215132] text-white border-[#215132]" : "bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:text-zinc-700"}`}>
-                <Ic name="document" size={14} />
-                Has teaser
-              </button>
+              <div className="flex items-center h-11 p-1 rounded-2xl border border-zinc-200 bg-white">
+                {TEASER_FILTER_OPTIONS.map(([value, label]) => (
+                  <button key={value} onClick={() => setFilterTeaser(value)}
+                    className={`h-9 px-3 rounded-xl font-normal text-xs transition-colors ${filterTeaser === value ? "bg-[#215132] text-white" : "text-zinc-500 hover:text-zinc-700"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
 
               {hasFilters && (
-                <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser(false); setShowMobileFilters(false); }} className="h-11 px-4 rounded-2xl font-normal text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
+                <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser("all"); setShowMobileFilters(false); }} className="h-11 px-4 rounded-2xl font-normal text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
                   <Ic name="close" size={13} />
                   Clear filters
                 </button>
@@ -1400,7 +1447,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
             {/* Mobile filter toggle */}
             <button
               onClick={() => setShowMobileFilters(v => !v)}
-              className="md:hidden relative h-11 w-11 shrink-0 flex items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
+              className="xl:hidden relative h-11 w-11 shrink-0 flex items-center justify-center rounded-2xl border border-zinc-200 bg-zinc-50 text-zinc-500 transition-colors"
             >
               <Ic name="filter" size={16} />
               {activeFilterCount > 0 && (
@@ -1411,7 +1458,13 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
 
           {/* Mobile filter panel */}
           {showMobileFilters && (
-            <div className="md:hidden flex flex-col gap-2 mt-3">
+            <div className="xl:hidden fixed inset-0 z-[60] flex flex-col justify-end">
+              <div className="absolute inset-0 bg-zinc-900/30" onClick={() => setShowMobileFilters(false)} />
+              <div className="relative flex flex-col gap-3 max-h-[80vh] overflow-y-auto rounded-t-3xl bg-white px-5 pt-5 pb-8 shadow-2xl">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Filters</p>
+                  <button onClick={() => setShowMobileFilters(false)} className="h-9 px-4 rounded-xl bg-[#215132] text-white text-xs font-normal">Done</button>
+                </div>
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   {openDropdown === "service-m" && <div className="fixed inset-0 z-30" onClick={() => setOpenDropdown(null)} />}
@@ -1480,16 +1533,21 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                     </div>
                   )}
                 </div>
-                <button onClick={() => setFilterTeaser(v => !v)}
-                  className={`h-11 px-4 rounded-2xl font-normal text-xs flex items-center gap-2 transition-colors border ${filterTeaser ? "bg-[#215132] text-white border-[#215132]" : "bg-white text-zinc-500 border-zinc-200"}`}>
-                  <Ic name="document" size={14} />Has teaser
-                </button>
+                <div className="flex items-center h-11 p-1 rounded-2xl border border-zinc-200 bg-white">
+                  {TEASER_FILTER_OPTIONS.map(([value, label]) => (
+                    <button key={value} onClick={() => setFilterTeaser(value)}
+                      className={`h-9 px-3 rounded-xl font-normal text-xs transition-colors ${filterTeaser === value ? "bg-[#215132] text-white" : "text-zinc-500"}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 {hasFilters && (
-                  <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser(false); setShowMobileFilters(false); }}
+                  <button onClick={() => { setSearch(""); setFilterService([]); setFilterIndustry([]); setFilterSize([]); setFilterTeaser("all"); setShowMobileFilters(false); }}
                     className="h-11 px-4 rounded-2xl font-normal text-xs text-zinc-500 hover:text-red-500 hover:bg-red-50 flex items-center gap-2 transition-colors">
                     <Ic name="close" size={13} />Clear filters
                   </button>
                 )}
+              </div>
               </div>
             </div>
           )}
@@ -1497,45 +1555,46 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
 
         {/* KPI Cards — driven by filtered set */}
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4 mb-5">
-          <KpiCard label="Deals shown" value={filtered.length} sub={`of ${deals.length} total in pipeline`} icon="briefcase" />
-          <KpiCard label="Portfolio Size" value={fmtMoneyCompact(totalSize)} sub="Nominal value, filtered view" icon="money" />
+          <KpiCard label="Deals shown" shortLabel="Deals" value={filtered.length} sub={`of ${deals.length} total in pipeline`} icon="briefcase" />
+          <KpiCard label="Portfolio Size" shortLabel="Value" value={fmtMoneyCompact(totalSize)} sub="Nominal value, filtered view" icon="money" />
           <KpiCard label="Sectors" value={industryCount} sub="Unique sectors in filtered view" icon="globe" />
-          <KpiCard label={perms.canUpdate ? "Teasers uploaded" : "Teasers ready"} value={teaserCount} sub={`${filtered.length - teaserCount} pending in view`} icon="document" />
+          <KpiCard label={perms.canUpdate ? "Teasers uploaded" : "Teasers ready"} shortLabel="Teasers" value={teaserCount} sub={`${filtered.length - teaserCount} pending in view`} icon="document" />
         </div>
 
         {/* Mobile deal cards */}
-        <div className="md:hidden bg-white border border-zinc-100 rounded-2xl overflow-hidden mb-6">
+        <div className="xl:hidden bg-white border border-zinc-100 rounded-2xl overflow-hidden mb-6">
           <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100">
             <p className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">Deals <span className="text-zinc-400">· {filtered.length}</span></p>
             {perms.canCreate && (
-              <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-9 px-4 text-xs whitespace-nowrap">
+              <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-11 xl:h-9 px-4 text-xs whitespace-nowrap">
                 <Ic name="plus" size={13} />
                 New deal
               </Button>
             )}
           </div>
-          <div className="divide-y divide-zinc-50">
-            {filtered.map((deal) => (
+          <div className="divide-y divide-zinc-200">
+            {filtered.map((deal, idx) => (
               <button key={deal.id} onClick={() => setSelectedDeal(deal)}
                 className="w-full text-left px-5 py-4 flex items-center gap-3 active:bg-zinc-50 transition-colors">
-                <div className="w-10 h-10 rounded-2xl bg-zinc-100 flex items-center justify-center text-sm text-zinc-600 font-medium shrink-0">
-                  {deal.codeName.charAt(0).toUpperCase()}
-                </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-sm text-zinc-900 font-medium truncate block mb-1.5">{deal.codeName}</span>
                   <div className="flex items-center gap-2">
                     {teasers[deal.id] && (
                       <button
                         onClick={(e) => { e.stopPropagation(); setTeaserView({ url: teasers[deal.id].url, dealName: deal.codeName }); }}
-                        className={`inline-flex items-center gap-1 px-2 h-5 rounded-md text-white text-[11px] font-medium whitespace-nowrap ${deal.teaserIsNew !== false ? "bg-[#42793A]" : "bg-amber-500"}`}
+                        className={`relative before:content-[''] before:absolute before:-inset-y-3 before:inset-x-0 inline-flex items-center gap-1 px-2 h-5 rounded-md text-white text-[11px] font-medium whitespace-nowrap ${deal.teaserIsNew !== false ? "bg-[#42793A]" : "bg-amber-500"}`}
                       >
                         See teaser
                       </button>
                     )}
-                    {deal.size && <span className="text-xs text-zinc-700 tabular-nums">{deal.size ? `$${Number(deal.size).toLocaleString()}` : "TBD"}</span>}
+                    {deal.size ? <span className="text-sm font-semibold text-zinc-900 tabular-nums">{`$${Number(deal.size).toLocaleString()}`}</span> : null}
                   </div>
+                  <p className="text-xs text-zinc-500 truncate mt-1.5">{[deal.industry, deal.service].filter(Boolean).join(" · ")}</p>
                 </div>
-                <Ic name="arrowDown" size={15} className="text-zinc-400 -rotate-90 shrink-0 ml-1" />
+                <div className="flex items-center gap-2 shrink-0 ml-1">
+                  <span className="text-xs text-zinc-400 tabular-nums">#{idx + 1}</span>
+                  <Ic name="arrowDown" size={15} className="text-zinc-400 -rotate-90" />
+                </div>
               </button>
             ))}
             {filtered.length === 0 && (
@@ -1550,12 +1609,16 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
         </div>
 
         {/* Table — desktop only */}
-        <div className="hidden md:block bg-white border border-zinc-100 rounded-2xl overflow-hidden">
+        <div className="hidden xl:block bg-white border border-zinc-100 rounded-2xl overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-zinc-100">
             <p className="text-xs font-semibold text-zinc-600 uppercase tracking-widest">
               Deal Table
             </p>
             <div className="flex items-center gap-2">
+              <button onClick={() => setFinancialsOverride(!financialsVisible)}
+                className="inline-flex items-center gap-2 h-9 px-4 rounded-xl border border-zinc-200 bg-zinc-50 text-xs font-normal text-zinc-600 hover:bg-zinc-100 transition-colors">
+                {financialsVisible ? "Hide financials" : "Show financials"}
+              </button>
               {/* Export dropdown */}
               <div className="relative">
                 {exportOpen && <div className="fixed inset-0 z-30" onClick={() => setExportOpen(false)} />}
@@ -1582,20 +1645,20 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
               </div>
 
               {perms.canCreate && (
-                <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-9 px-4 text-xs whitespace-nowrap">
+                <Button onClick={() => setShowAddDeal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#215132] hover:bg-[#1a3f28] text-white font-normal h-11 xl:h-9 px-4 text-xs whitespace-nowrap">
                   <Ic name="plus" size={13} />
                   New deal
                 </Button>
               )}
             </div>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[70vh]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-300 divide-x divide-zinc-300">
-                  {[["#",null,52,null],["Code name","codeName",null,null],...(isAdmin ? [["Entity","entity",null,null]] : []),["Sector","industry",null,null],["Service","service",110,null],["Asking Price","size",200,null],["Revenues","revenues",200,null],["EBITDA","ebitda",180,null]].map(([lbl, field, w, mw]) => (
+                  {[["#",null,52,null],["Code name","codeName",null,null],...(isAdmin ? [["Entity","entity",null,null]] : []),["Sector","industry",null,null],["Service","service",110,null],["Asking Price","size",200,null],["Revenues","revenues",200,null],["EBITDA","ebitda",180,null]].filter(([lbl]) => financialsVisible || (lbl !== "Revenues" && lbl !== "EBITDA")).map(([lbl, field, w, mw], ci) => (
                     <th key={lbl} onClick={() => field && toggleSort(field)} style={{ ...(w ? { width: w } : {}), ...(mw ? { maxWidth: mw } : {}) }}
-                      className={`px-4 py-3 text-left text-xs text-zinc-500 font-medium tracking-wide whitespace-nowrap ${field ? "cursor-pointer hover:text-zinc-800 select-none" : ""}`}>
+                      className={`px-4 py-3 text-left text-xs text-zinc-500 font-medium tracking-wide whitespace-nowrap bg-white sticky top-0 ${ci === 0 ? "left-0 z-30" : ci === 1 ? "left-[52px] z-30 shadow-[inset_-1px_0_0_#d4d4d8]" : "z-20"} ${field ? "cursor-pointer hover:text-zinc-800 select-none" : ""}`}>
                       <span className="flex items-center gap-1.5">
                         {lbl}
                         {field && <SortIcon field={field} />}
@@ -1607,9 +1670,9 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
               <tbody>
                 {filtered.map((deal, idx) => (
                   <tr key={deal.id} onClick={() => setSelectedDeal(deal)}
-                    className="border-b border-zinc-200 divide-x divide-zinc-300 hover:bg-zinc-50 cursor-pointer transition-colors">
-                    <td className="px-4 py-3.5 text-xs text-zinc-400 tabular-nums">{idx + 1}</td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">
+                    className="group border-b border-zinc-200 divide-x divide-zinc-300 hover:bg-zinc-50 cursor-pointer transition-colors">
+                    <td className="sticky left-0 z-10 bg-white group-hover:bg-zinc-50 px-4 py-3.5 text-xs text-zinc-400 tabular-nums">{idx + 1}</td>
+                    <td className="sticky left-[52px] z-10 bg-white group-hover:bg-zinc-50 shadow-[inset_-1px_0_0_#d4d4d8] px-4 py-3.5 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <span className="text-zinc-900 font-medium text-sm leading-tight">{deal.codeName}</span>
                         {teasers[deal.id] && (
@@ -1629,8 +1692,8 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
                       <span className={`text-sm px-2.5 py-0.5 rounded-full border font-normal ${serviceBadge[deal.service] || ""}`}>{deal.service}</span>
                     </td>
                     <td className={`px-4 py-3.5 text-sm font-normal text-zinc-900 tabular-nums whitespace-nowrap ${sizeRowBg(deal.size)}`}>{deal.size ? `$${Number(deal.size).toLocaleString()}` : "TBD"}</td>
-                    <td className="px-4 py-3.5 text-sm font-normal text-zinc-900 tabular-nums whitespace-nowrap">{deal.revenues ? `$${Number(deal.revenues).toLocaleString()}` : "—"}</td>
-                    <td className="px-4 py-3.5 text-sm font-normal text-zinc-900 tabular-nums whitespace-nowrap">{deal.ebitda ? `$${Number(deal.ebitda).toLocaleString()}` : "—"}</td>
+                    {financialsVisible && <td className="px-4 py-3.5 text-sm font-normal text-zinc-900 tabular-nums whitespace-nowrap">{deal.revenues ? `$${Number(deal.revenues).toLocaleString()}` : "—"}</td>}
+                    {financialsVisible && <td className="px-4 py-3.5 text-sm font-normal text-zinc-900 tabular-nums whitespace-nowrap">{deal.ebitda ? `$${Number(deal.ebitda).toLocaleString()}` : "—"}</td>}
                   </tr>
                 ))}
                 {filtered.length === 0 && (
@@ -1652,7 +1715,7 @@ const teaserCount = filtered.filter(d => teasers[d.id]).length;
         </div>
 
         {/* Size range legend */}
-        <div className="hidden md:flex items-center gap-4 mt-3 px-1 flex-wrap">
+        <div className="hidden xl:flex items-center gap-4 mt-3 px-1 flex-wrap">
           {[
             { label: "$5M+",        bg: "bg-[#eef6ec]" },
             { label: "$1M – $5M",   bg: "bg-[#f6fbe9]" },
